@@ -21,7 +21,7 @@ void gauge_force(double *x, double *p_dot, double beta, unsigned *nnt, unsigned 
 	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2, ng = mode->num_gen;
 	double complex *pl = mode->zdummy;
 	double complex *g = pl + mat_dim;
-	double complex *u = g + mat_dim;
+	double complex *u = g + 4*mat_dim;
 	double *ev = mode->ddummy;
 
 	for(unsigned i = 0; i < ns; i++){
@@ -100,8 +100,9 @@ short trajectory(double *x, double complex *xc, double beta, unsigned *nnt, unsi
 	plaquettes = plaquette_av(x, nnt, ns, nn, mode);
 	energy = hamilton(energyP, plaquettes, beta, ns, mode);
 
-	//printf("logDetM: %g -> %g\n", logDetM_old, logDetM);
-	//printf("energies: %g -> %g ,  dE = %g\n", energy_old, energy, energy-energy_old);
+	printf("E_p: %g -> %g\n", energyP_old, energyP);
+	printf("plaquette: %g -> %g\n", *plaquettes_old, plaquettes);
+	printf("energies: %g -> %g ,  dE = %g\n", energy_old, energy, energy-energy_old);
 
 	boltzmann = exp(energy_old-energy);
 	if(!(boltzmann > genrand64_real2())){ // cumbersome expression to avoid problems with NaN
@@ -141,7 +142,7 @@ void run_hmc(double beta, unsigned *nnt, unsigned ns, unsigned nn, unsigned step
 	double *x = malloc(4*dim * sizeof(double));
 	fftw_complex *xc = (fftw_complex*) fftw_malloc(2*compl_dim * sizeof(fftw_complex));
 
-	mode->zdummy = malloc(10 * (group_dim + nn2*nn2) * sizeof(double complex));
+	mode->zdummy = malloc(20 * (group_dim + nn2*nn2) * sizeof(double complex));
 	mode->ddummy = malloc(10 * gd * sizeof(double));
 	mode->idummy = malloc(nn * sizeof(int));
 

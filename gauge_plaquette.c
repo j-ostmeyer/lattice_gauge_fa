@@ -13,7 +13,7 @@ double plaquette_av(double *x, unsigned *nnt, unsigned ns, unsigned nn, gauge_fl
 	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2;
 	const unsigned nd = mode->space_dim;
 	double complex *g = mode->zdummy;
-	double complex *u = g + mat_dim;
+	double complex *u = g + 4*mat_dim;
 	double *ev = mode->ddummy;
 	double plaquettes = 0;
 

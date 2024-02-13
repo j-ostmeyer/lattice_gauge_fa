@@ -26,7 +26,9 @@
 double norm(double complex x);
 
 void print_vec(double *vec, unsigned n);
+void print_zvec(double complex *vec, unsigned n);
 void print_mat(double *m, unsigned long n);
+void print_zmat(double complex *m, unsigned long n);
 void fprint_results(FILE *out, double *res, unsigned n, unsigned r);
 
 double average(double *x, unsigned n);

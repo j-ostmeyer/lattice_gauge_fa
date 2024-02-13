@@ -18,6 +18,8 @@
 void alg2group(double *x, double complex *u, double complex *g, double *ev, int dagger, gauge_flags *mode){
 	const unsigned n = mode->gauge_dim, mat_dim = n*n;
 	double complex *y = g + mat_dim;
+	double complex *gr = y + mat_dim;
+	double complex *cev = gr + mat_dim;
 
 	//for(unsigned i = 0; i < mat_dim; i++) g[i] = 0;
 
@@ -34,17 +36,24 @@ void alg2group(double *x, double complex *u, double complex *g, double *ev, int 
 	}
 
 	for(unsigned j = 0; j < n; j++){
-		g[j*(n+1)] *= .5; // half diagonal terms
-		for(unsigned k = 0; k < j; k++){
-			g[k*n + j] *= .5; // half upper triangle terms
-			//g[j*n + k] = conj(g[k*n + j]); // matrix is hermitian, not required for diagonalisation
+		const unsigned jn = j*n;
+
+		g[jn + j] *= .5; // half diagonal terms
+
+		for(unsigned k = j+1; k < n; k++){
+			g[jn + k] *= .5; // half upper triangle terms
+			g[k*n + j] = conj(g[jn + k]);
 		}
 	}
 
 	// diagonalise g
-	LAPACKE_zheev(LAPACK_ROW_MAJOR, 'V', 'U', n, g, n, ev);
-	
-	// exp(i ew)
+	// nasty hack because zheev doesn't work!
+	//LAPACKE_zheev(LAPACK_ROW_MAJOR, 'V', 'U', n, g, n, ev);
+	LAPACKE_zgeev(LAPACK_ROW_MAJOR, 'N', 'V', n, g, n, cev, NULL, n, gr, n);
+	g = gr;
+	for(unsigned i = 0; i < n; i++) ev[i] = creal(cev[i]);
+
+	// exp(i ev)
 	for(unsigned i = 0; i < n; i++) y[i] = cexp(I * ev[i]);
 
 	// multiply back
@@ -63,7 +72,6 @@ void alg2group(double *x, double complex *u, double complex *g, double *ev, int 
 			else u[jn + k] = tmp;
 		}
 	}
-	
 }
 
 void get_alg_u1(double *x, double complex *g){

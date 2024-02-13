@@ -34,10 +34,12 @@ int main(int argc, char **argv){
 	}
 
 	unsigned therm, meas, meas_freq;
-	if(fscanf(in, "therm. steps = %u\nmeas. steps, freq. = %u %u\n", &therm, &meas, &meas_freq) != 3){
+	if(fscanf(in, "therm. steps = %u\nmeas. steps, freq. = %u, %u\n", &therm, &meas, &meas_freq) != 3){
 		printf("Error: Need therm, meas, meas-freq!\n");
 		return 0;
 	}
+
+	//printf("%g, %u, %g, %u, %u, %u\n", beta, steps, traj_length, therm, meas, meas_freq);
 
 	gauge_flags mode[1];
 	set_flags(in, mode);

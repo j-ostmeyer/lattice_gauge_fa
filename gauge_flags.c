@@ -10,7 +10,8 @@ void set_flags(FILE *in, gauge_flags *mode){
 
 	char flag[200];
 
-	while(fscanf(in, "%s\n", flag) != EOF && !mode->gauge_group){
+	while(!mode->gauge_group){
+		fscanf(in, "%s\n", flag);
 		//printf("%s\n", flag);
 
 		if(!strcmp(flag, "U1")){

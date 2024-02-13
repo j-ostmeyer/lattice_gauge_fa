@@ -19,6 +19,11 @@ void print_vec(double *vec, unsigned n){
 	for(i = 0; i < n; i++) printf("%g\n", vec[i]);
 }
 
+void print_zvec(double complex *vec, unsigned n){
+	unsigned i;
+	for(i = 0; i < n; i++) printf("%g %+g i\n", creal(vec[i]), cimag(vec[i]));
+}
+
 void print_mat(double *m, unsigned long n){
 	unsigned i, k;
 
@@ -26,6 +31,18 @@ void print_mat(double *m, unsigned long n){
 	for(i = 0; i < n; i++){
 		printf("{");
 		for(k = 0; k < n; k++, m++) printf("%.15g,\t", *m);
+		printf("},\n");
+	}
+	printf("}\n");
+}
+
+void print_zmat(double complex *m, unsigned long n){
+	unsigned i, k;
+
+	printf("{");
+	for(i = 0; i < n; i++){
+		printf("{");
+		for(k = 0; k < n; k++, m++) printf("%g %+g i,\t", creal(*m), cimag(*m));
 		printf("},\n");
 	}
 	printf("}\n");
@@ -87,6 +104,8 @@ void dagger(double complex *m, unsigned n){
 	for(unsigned i = 0; i < n; i++){
 		const unsigned shift = i*n;
 
+		m[shift + i] = conj(m[shift + i]);
+
 		for(unsigned j = i+1; j < n; j++){
 			const unsigned pos = shift + j;
 			const unsigned posT = j*n + i;
@@ -102,6 +121,8 @@ void dagger_sym(double complex *m, unsigned n){
 	for(unsigned i = 0; i < n; i++){
 		const unsigned shift = i*n;
 
+		m[shift + i] = creal(m[shift + i]);
+
 		for(unsigned j = i+1; j < n; j++){
 			const unsigned pos = shift + j;
 			const unsigned posT = j*n + i;
@@ -116,6 +137,8 @@ void dagger_sym(double complex *m, unsigned n){
 void dagger_asym(double complex *m, unsigned n){
 	for(unsigned i = 0; i < n; i++){
 		const unsigned shift = i*n;
+
+		m[shift + i] = -cimag(m[shift + i]);
 
 		for(unsigned j = i+1; j < n; j++){
 			const unsigned pos = shift + j;
@@ -197,7 +220,7 @@ double trace_prod(double complex *u, unsigned n, unsigned d){
 
 	for(unsigned k = 0; k < d; k++){
 		const unsigned kd = k*d;
-		for(unsigned i = 0; i < d; k++){
+		for(unsigned i = 0; i < d; i++){
 			const double complex a = prod[kd + i], b = u[i*d + k];
 			tr += creal(a) * creal(b) - cimag(a) * cimag(b);
 		}
