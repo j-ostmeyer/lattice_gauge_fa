@@ -1,12 +1,12 @@
 CC = gcc
-MYFILES=lattice flags aux random hmc
+MYFILES=lattice flags aux random alg2group harmonic plaquette hmc
 RNG=mt19937-64
 
 CC += -std=gnu11 -march=native
 MYFLAGS=-Wall -pedantic -O3
-MYFLAGS += -Wno-unknown-pragmas
+#MYFLAGS += -Wno-unknown-pragmas
 CC += -Wno-unused-result
-MYFLAGS += -Wno-comment
+#MYFLAGS += -Wno-comment
 
 MYLIBS=-lfftw3 -lm
 
@@ -28,7 +28,7 @@ ifneq (,$(call findany,login viz,$(HOSTNAME)))
   #MYLIBS += -L$$LAPACKLIB
   #MYLIBS += -L$$OPENBLASLIB -lopenblas
 else
-  #MYFLAGS += -g -Og -fsanitize=address -static-libasan
+  MYFLAGS += -g -Og -fsanitize=address -static-libasan
   MYLIBS += -llapacke -llapack -lblas
 endif
 
