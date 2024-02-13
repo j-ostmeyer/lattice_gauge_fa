@@ -136,6 +136,7 @@ figures/*.eps
 log/
 
 ## compiled files
+*main
 *.o
 *.so
 */bin/
