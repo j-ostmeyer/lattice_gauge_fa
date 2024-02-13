@@ -1,0 +1,8 @@
+beta = 1
+MD steps, traj. length = 10, 0
+therm. steps = 10
+meas. steps, freq. = 20, 1
+SU2
+geometry = cubic
+dimension = 2
+length = 4
