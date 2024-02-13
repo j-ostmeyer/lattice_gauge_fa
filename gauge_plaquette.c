@@ -89,11 +89,11 @@ double strong_coupling_plaquette(double beta, gauge_flags *mode){
 	const unsigned d = mode->space_dim;
 	switch(mode->gauge_group){
 		case 1:
-			return 2*strong_coupling_pl_u1(beta*2, d);
+			return 2*strong_coupling_pl_u1(beta, d);
 		case 2:
-			return strong_coupling_pl_su2(beta, d);
+			return 2*strong_coupling_pl_su2(beta, d);
 		case 3:
-			return strong_coupling_pl_su3(beta, d);
+			return 2*strong_coupling_pl_su3(beta, d);
 		default:
 			return 0;
 	}
