@@ -36,12 +36,12 @@ void fill_harm_mat(double complex *u, unsigned nn2, unsigned nl, unsigned i, gau
 		ind /= nl;
 	}
 
-	for(unsigned k = 0; k < nn2; k++) u[k*(nn2+1)] = diag;
+	for(unsigned k = 0; k < nn2; k++) u[k*(nn2+1)] = 2 * diag;
 
 	for(unsigned k1 = 1; k1 < nn2; k1++){
 		const unsigned shift = k1*nn2;
 		for(unsigned k2 = 0; k2 < k1; k2++){
-			u[shift + k2] = w[k1] * w[k2] * cexp(I * (z[k1] - z[k2]));
+			u[shift + k2] = 2 * w[k1] * w[k2] * cexp(I * (z[k1] - z[k2]));
 		}
 	}
 }
@@ -66,8 +66,8 @@ void sample_fourier_momenta(double *p, double complex *pc, double beta, unsigned
 
 	fftw_execute(fft[1]);
 
-	const double pii = 1. / M_PI / ns;
-	for(unsigned j = 0; j < nn2*ng; j++) pc[j] *= pii;
+	//const double pii = 1. / M_PI / ns;
+	for(unsigned j = 0; j < nn2*ng; j++) pc[j] *= 0; //pii;
 
 	for(unsigned i = 1; i < compl_dim; i++){
 		fill_harm_mat(u, nn2, nl, i, mode);
@@ -100,8 +100,8 @@ double energy_fourier_momenta(double complex *pc, double beta, unsigned ns, unsi
 
 	fftw_execute(fft[1]);
 
-	const double pi2 = .5 * M_PI*M_PI * beta;
-	for(unsigned j = 0; j < nn2*ng; j++) en += norm(pc[j]) * pi2;
+	//const double pi2 = .5 * M_PI*M_PI * beta;
+	//for(unsigned j = 0; j < nn2*ng; j++) en += norm(pc[j]) * pi2;
 
 	for(unsigned i = 1; i < compl_dim; i++){
 		const unsigned pos = i % loc_dim;
@@ -147,9 +147,9 @@ void evolve_fields(double complex *xc, double beta, unsigned ns, unsigned nn2, d
 	fftw_execute(fft[0]);
 	fftw_execute(fft[1]);
 
-	const double pi2 = M_PI*M_PI * h;
+	//const double pi2 = M_PI*M_PI * h;
 	for(unsigned j = 0; j < nn2*ng; j++){
-		xc[j] += pi2 * pc[j];
+		//xc[j] += pi2 * pc[j];
 		xc[j] *= ivol;
 	}
 

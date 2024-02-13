@@ -121,21 +121,21 @@ void project_tr_u1(double complex *u, double *x){
 }
 
 void project_tr_su2(double complex *u, double *x){
-	x[0] = .5 * ( creal(u[1]) + creal(u[2])); // sigma_x
-	x[1] = .5 * (-cimag(u[1]) + cimag(u[2])); // sigma_y
-	x[2] = .5 * ( creal(u[0]) - creal(u[3])); // sigma_z
+	x[0] = .25 * ( creal(u[1]) + creal(u[2])); // sigma_x
+	x[1] = .25 * (-cimag(u[1]) + cimag(u[2])); // sigma_y
+	x[2] = .25 * ( creal(u[0]) - creal(u[3])); // sigma_z
 }
 
 void project_tr_su3(double complex *u, double *x){
-	x[0] = .5 * ( creal(u[1]) + creal(u[3])); // lambda_1
-	x[1] = .5 * (-cimag(u[1]) + cimag(u[3])); // lambda_2
-	x[2] = .5 * ( creal(u[0]) - creal(u[4])); // lambda_3
+	x[0] = .25 * ( creal(u[1]) + creal(u[3])); // lambda_1
+	x[1] = .25 * (-cimag(u[1]) + cimag(u[3])); // lambda_2
+	x[2] = .25 * ( creal(u[0]) - creal(u[4])); // lambda_3
 
-	x[3] = .5 * ( creal(u[2]) + creal(u[6])); // lambda_4
-	x[4] = .5 * (-cimag(u[2]) + cimag(u[6])); // lambda_5
-	x[5] = .5 * ( creal(u[5]) + creal(u[7])); // lambda_6
-	x[6] = .5 * (-cimag(u[5]) + cimag(u[7])); // lambda_7
+	x[3] = .25 * ( creal(u[2]) + creal(u[6])); // lambda_4
+	x[4] = .25 * (-cimag(u[2]) + cimag(u[6])); // lambda_5
+	x[5] = .25 * ( creal(u[5]) + creal(u[7])); // lambda_6
+	x[6] = .25 * (-cimag(u[5]) + cimag(u[7])); // lambda_7
 
 	x[7] = creal(u[0]) + creal(u[4]) - 2*creal(u[8]); // lambda_8
-	x[7] *= .5*ISQ3; // lambda_8
+	x[7] *= .25*ISQ3; // lambda_8
 }

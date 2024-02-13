@@ -41,12 +41,14 @@ double plaquette_fields(double *x, double complex *u, double complex *g, double 
 }
 
 void staple_fields(double *x, double complex *u, double complex *g, double *ev, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
-	const unsigned n = mode->gauge_dim, mat_dim = n*n;
+	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2;
 	const unsigned *nnl = nnt + ns*nn;
 
-	alg2group(x + nnl[nnt[pos*nn + mu]*nn + nu], u + 2*mat_dim, g, ev, 0, mode);
+	const int turn = nu >= links;
+
+	alg2group(x + nnl[nnt[pos*nn + mu]*nn + nu], u + 2*mat_dim, g, ev, turn, mode);
 	alg2group(x + nnl[nnt[pos*nn + nu]*nn + mu], u + 1*mat_dim, g, ev, 1, mode);
-	alg2group(x + nnl[pos*nn + nu], u, g, ev, 1, mode);
+	alg2group(x + nnl[pos*nn + nu], u, g, ev, 1 - turn, mode);
 
 	mat_prod(u, 3, n);
 }

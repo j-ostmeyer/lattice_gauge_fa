@@ -42,7 +42,7 @@ void print_zmat(double complex *m, unsigned long n){
 	printf("{");
 	for(i = 0; i < n; i++){
 		printf("{");
-		for(k = 0; k < n; k++, m++) printf("%g %+g i,\t", creal(*m), cimag(*m));
+		for(k = 0; k < n; k++, m++) printf("%g %+g I,\t", creal(*m), cimag(*m));
 		printf("},\n");
 	}
 	printf("}\n");
@@ -146,7 +146,7 @@ void dagger_asym(double complex *m, unsigned n){
 
 			const double complex tmp = .5*I*(m[pos] - conj(m[posT]));
 			m[pos] = tmp;
-			m[posT] = tmp;
+			m[posT] = conj(tmp);
 		}
 	}
 }
