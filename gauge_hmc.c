@@ -31,7 +31,7 @@ void gauge_force(double *x, double *p_dot, double beta, unsigned *nnt, unsigned 
 			sum_of_plaquettes(x, pl, u, g, ev, nnt, ns, nn, i, mu, 0, mode);
 			project_tr_lambda(pl, p_dot + shift, mode);
 
-			for(unsigned k = 0; k < ng; k++) p_dot[shift + k] *= .5 * beta;
+			for(unsigned k = 0; k < ng; k++) p_dot[shift + k] *= beta;
 		}
 	}
 }

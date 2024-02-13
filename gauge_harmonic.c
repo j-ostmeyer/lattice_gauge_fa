@@ -58,7 +58,7 @@ void sample_fourier_momenta(double *p, double complex *pc, double beta, unsigned
 	const unsigned nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim;
 	const double scale = sqrt(beta) / ns;
 	double complex *u = mode->zdummy;
-	double *tmp = mode->ddummy;
+	double complex *tmp = u + nn2*nn2;
 
 	random_vector(p, dim);
 
@@ -100,10 +100,16 @@ double energy_fourier_momenta(double complex *pc, double beta, unsigned ns, unsi
 
 	fftw_execute(fft[1]);
 
-	const double pi2 = M_PI*M_PI;
+	const double pi2 = .5 * M_PI*M_PI * beta;
 	for(unsigned j = 0; j < nn2*ng; j++) en += norm(pc[j]) * pi2;
 
 	for(unsigned i = 1; i < compl_dim; i++){
+		const unsigned pos = i % loc_dim;
+		double weight = .5;
+
+		// elements t=1...Nt/2-1 occur twice (as complex conj pairs), but are stored only once
+		if(pos > 0 && pos < (nl+1)/2) weight *= 2;
+
 		fill_harm_mat(u, nn2, nl, i, mode);
 		LAPACKE_zpotrf(LAPACK_ROW_MAJOR, 'L', nn2, u, nn2); // Cholesky-decompose
 		LAPACKE_zpotri(LAPACK_ROW_MAJOR, 'L', nn2, u, nn2); // invert
@@ -123,7 +129,7 @@ double energy_fourier_momenta(double complex *pc, double beta, unsigned ns, unsi
 					tmp += conj(u[k2*nn2 + k1]) * pc[shiftP + k2*ng];
 
 				const double complex proj = pc[shiftP + k1*ng];
-				en += creal(proj)*creal(tmp) + cimag(proj)*cimag(tmp);
+				en += weight * (creal(proj)*creal(tmp) + cimag(proj)*cimag(tmp));
 			}
 		}
 	}
@@ -132,11 +138,11 @@ double energy_fourier_momenta(double complex *pc, double beta, unsigned ns, unsi
 }
 
 void evolve_fields(double complex *xc, double beta, unsigned ns, unsigned nn2, double h, const fftw_plan *fft, gauge_flags *mode){
-	const unsigned ng = mode->num_gen, dim = ns*nn2*ng;
+	const unsigned ng = mode->num_gen;
 	const unsigned nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim;
 	const double ivol = 1. / ns;
 	double complex *u = mode->zdummy;
-	double complex *pc = xc + dim;
+	double complex *pc = xc + compl_dim * nn2*ng;
 
 	fftw_execute(fft[0]);
 	fftw_execute(fft[1]);
@@ -167,7 +173,7 @@ void evolve_fields(double complex *xc, double beta, unsigned ns, unsigned nn2, d
 					tmp += conj(u[k2*nn2 + k1]) * pc[shiftP + k2*ng];
 
 				const unsigned pos = shiftP + k1*ng;
-				xc[pos] += h / beta * pc[pos];
+				xc[pos] += h / beta * tmp;
 				xc[pos] *= ivol;
 			}
 		}
