@@ -25,7 +25,7 @@ double plaquette_av(double *x, unsigned *nnt, unsigned ns, unsigned nn, gauge_fl
 		}
 	}
 
-	return plaquettes * 2./nd/(nd-1) / ns;
+	return plaquettes * 2/nd/(nd-1) / ns;
 }
 
 double plaquette_fields(double *x, double complex *u, double complex *g, double *ev, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
@@ -89,7 +89,7 @@ double strong_coupling_plaquette(double beta, gauge_flags *mode){
 	const unsigned d = mode->space_dim;
 	switch(mode->gauge_group){
 		case 1:
-			return strong_coupling_pl_u1(beta, d);
+			return 2*strong_coupling_pl_u1(beta*2, d);
 		case 2:
 			return strong_coupling_pl_su2(beta, d);
 		case 3:

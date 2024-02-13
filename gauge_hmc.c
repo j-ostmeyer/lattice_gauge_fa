@@ -48,7 +48,7 @@ double energy_momenta(double *p, double complex *pc, double beta, unsigned ns, u
 double hamilton(double energyP, double pl_av, double beta, unsigned ns, gauge_flags *mode){
 	const unsigned nd = mode->space_dim;
 
-	return energyP - .5 * beta * pl_av * ns * nd*(nd-1)/2;
+	return energyP - beta * pl_av * ns * nd*(nd-1)/2;
 }
 
 void update_x(double *x, double *p, double complex *xc, double beta, unsigned ns, unsigned nn, double h, const fftw_plan *fft, gauge_flags *mode){

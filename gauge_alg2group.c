@@ -25,7 +25,7 @@ void alg2group(double *x, double complex *u, double complex *g, double *ev, int 
 
 	switch(mode->gauge_group){
 		case 1:
-			g[0] = cexp(I * x[0]);
+			u[0] = cexp(I * x[0]);
 			return;
 		case 2:
 			get_alg_su2(x, g);
@@ -117,7 +117,7 @@ void project_tr_lambda(double complex *u, double *x, gauge_flags *mode){
 }
 
 void project_tr_u1(double complex *u, double *x){
-	x[0] = .5 * creal(u[0]);
+	x[0] = creal(u[0]);
 }
 
 void project_tr_su2(double complex *u, double *x){

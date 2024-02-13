@@ -226,5 +226,5 @@ double trace_prod(double complex *u, unsigned n, unsigned d){
 		}
 	}
 
-	return tr;
+	return tr / d;
 }
