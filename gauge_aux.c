@@ -14,6 +14,12 @@ double norm(double complex x){
 	return a*a + b*b;
 }
 
+double vec_norm(double complex *x, unsigned n){
+	double sum = 0;
+	for(unsigned i = 0; i < n; i++) sum += norm(x[i]);
+	return sum;
+}
+
 void print_vec(double *vec, unsigned n){
 	unsigned i;
 	for(i = 0; i < n; i++) printf("%g\n", vec[i]);
@@ -74,10 +80,10 @@ double average_sq(double *x, unsigned n){
 	return res/n;
 }
 
-double scalar_dot(double *x, double *y, unsigned d){
-	double total = 0;
+double complex scalar_dot(double complex *x, double complex *y, unsigned d){
+	double complex total = 0;
 
-	for(unsigned i = 0; i < d; i++) total += x[i]*y[i];
+	for(unsigned i = 0; i < d; i++) total += conj(x[i])*y[i];
 
 	return total;
 }
@@ -98,6 +104,48 @@ void construct_id(double complex *m, unsigned n){
 
 	for(unsigned i = 0; i < n2; i++) m[i] = 0;
 	for(unsigned i = 0; i < n; i++) m[i*n1] = 1;
+}
+
+void check_unitarity(double complex *u, unsigned ns, unsigned nn, gauge_flags *mode){
+	// Gram-Schmidt unitarise all the links
+	const unsigned nn2 = nn/2, gd = mode->gauge_dim, dim = ns*nn2, stride = nn2*gd;
+
+	for(unsigned pos = 0; pos < dim; pos++){
+		for(unsigned i = 0; i < gd; i++){
+			const unsigned shift1 = pos*stride + i*gd;
+			const double one = 1./sqrt(vec_norm(u + shift1, gd));
+
+			for(unsigned k = 0; k < gd; k++) u[shift1 + k] *= one; // normalise
+
+			for(unsigned j = i+1; j < gd; j++){
+				const unsigned shift2 = pos*stride + j*gd;
+				const double complex zero = scalar_dot(u + shift1, u + shift2, gd);
+
+				for(unsigned k = 0; k < gd; k++) u[shift2 + k] -= zero * u[shift1 + k]; // orthogonalise
+			}
+		}
+	}
+}
+
+void copy_mat(double complex *x, double complex *y, unsigned n, int dagger){
+	if(!dagger){ // simply copy
+		const unsigned mat_dim = n*n;
+		for(unsigned i = 0; i < mat_dim; i++) y[i] = x[i];
+	}else{ // copy and hermitian conjugate
+		for(unsigned i = 0; i < n; i++){
+			const unsigned shift = i*n;
+
+			y[shift + i] = conj(x[shift + i]);
+
+			for(unsigned j = i+1; j < n; j++){
+				const unsigned pos = shift + j;
+				const unsigned posT = j*n + i;
+
+				y[pos] = conj(x[posT]);
+				y[posT] = conj(x[pos]);
+			}
+		}
+	}
 }
 
 void dagger(double complex *m, unsigned n){

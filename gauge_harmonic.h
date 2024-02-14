@@ -8,7 +8,7 @@
 
 void fill_harm_mat(double complex *u, unsigned nn2, unsigned nl, unsigned i, gauge_flags *mode);
 
-void sample_harmonic(double *x, double complex *xc, double beta, unsigned ns, unsigned nn2, const fftw_plan *fft, gauge_flags *mode);
+void sample_id(double complex *u, unsigned ns, unsigned nn2, unsigned gd);
 void sample_fourier_momenta(double *p, double complex *pc, double beta, unsigned ns, unsigned nn2, const fftw_plan *fft, gauge_flags *mode);
 
 double energy_fourier_momenta(double complex *pc, double beta, unsigned ns, unsigned nn2, const fftw_plan *fft, gauge_flags *mode);

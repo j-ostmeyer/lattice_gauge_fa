@@ -19,7 +19,6 @@
 #include "gauge_harmonic.h"
 
 void fill_harm_mat(double complex *u, unsigned nn2, unsigned nl, unsigned i, gauge_flags *mode){
-	// TODO this only works for hyper-cubic lattices!
 	const unsigned loc_dim = nl/2+1;
 	const double matsubara = M_PI / nl;
 	double *w = mode->ddummy;
@@ -46,11 +45,10 @@ void fill_harm_mat(double complex *u, unsigned nn2, unsigned nl, unsigned i, gau
 	}
 }
 
-void sample_harmonic(double *x, double complex *xc, double beta, unsigned ns, unsigned nn2, const fftw_plan *fft, gauge_flags *mode){
-	// TODO implement properly
-	const unsigned ng = mode->num_gen, dim = ns*nn2*ng;
+void sample_id(double complex *u, unsigned ns, unsigned nn2, unsigned gd){
+	const unsigned dim = ns*nn2, group_dim = gd*gd;
 	
-	for(unsigned i = 0; i < dim; i++) x[i] = 0;
+	for(unsigned i = 0; i < dim; i++) construct_id(u + i*group_dim, gd);
 }
 
 void sample_fourier_momenta(double *p, double complex *pc, double beta, unsigned ns, unsigned nn2, const fftw_plan *fft, gauge_flags *mode){

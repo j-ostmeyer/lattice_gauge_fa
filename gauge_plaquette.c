@@ -9,18 +9,15 @@
 
 #include "gauge_plaquette.h"
 
-double plaquette_av(double *x, unsigned *nnt, unsigned ns, unsigned nn, gauge_flags *mode){
-	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2;
+double plaquette_av(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, gauge_flags *mode){
+	const unsigned links = nn/2;
 	const unsigned nd = mode->space_dim;
-	double complex *g = mode->zdummy;
-	double complex *u = g + 4*mat_dim;
-	double *ev = mode->ddummy;
 	double plaquettes = 0;
 
 	for(unsigned i = 0; i < ns; i++){
 		for(unsigned nu = 1; nu < links; nu++){
 			for(unsigned mu = 0; mu < nu; mu++){
-				plaquettes += plaquette_fields(x, u, g, ev, nnt, ns, nn, i, mu, nu, mode);
+				plaquettes += plaquette_fields(u, nnt, ns, nn, i, mu, nu, mode);
 			}
 		}
 	}
@@ -28,63 +25,65 @@ double plaquette_av(double *x, unsigned *nnt, unsigned ns, unsigned nn, gauge_fl
 	return plaquettes * 2/nd/(nd-1) / ns;
 }
 
-double plaquette_fields(double *x, double complex *u, double complex *g, double *ev, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
+double plaquette_fields(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
 	const unsigned n = mode->gauge_dim, mat_dim = n*n;
 	const unsigned *nnl = nnt + ns*nn;
+	double complex *z = mode->zdummy;
 
-	alg2group(x + nnl[pos*nn + mu], u + 3*mat_dim, g, ev, 0, mode);
-	alg2group(x + nnl[nnt[pos*nn + mu]*nn + nu], u + 2*mat_dim, g, ev, 0, mode);
-	alg2group(x + nnl[nnt[pos*nn + nu]*nn + mu], u + 1*mat_dim, g, ev, 1, mode);
-	alg2group(x + nnl[pos*nn + nu], u, g, ev, 1, mode);
+	copy_mat(u + nnl[pos*nn + mu], z + 3*mat_dim, n, 0);
+	copy_mat(u + nnl[nnt[pos*nn + mu]*nn + nu], z + 2*mat_dim, n, 0);
+	copy_mat(u + nnl[nnt[pos*nn + nu]*nn + mu], z + 1*mat_dim, n, 1);
+	copy_mat(u + nnl[pos*nn + nu], z, n, 1);
 
-	return trace_prod(u, 4, n);
+	return trace_prod(z, 4, n);
 }
 
-void staple_fields(double *x, double complex *u, double complex *g, double *ev, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
-	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2;
-	const unsigned *nnl = nnt + ns*nn;
-
-	const int turn = nu >= links;
-
-	alg2group(x + nnl[nnt[pos*nn + mu]*nn + nu], u + 2*mat_dim, g, ev, turn, mode);
-	alg2group(x + nnl[nnt[pos*nn + nu]*nn + mu], u + 1*mat_dim, g, ev, 1, mode);
-	alg2group(x + nnl[pos*nn + nu], u, g, ev, 1 - turn, mode);
-
-	mat_prod(u, 3, n);
-}
-
-void sum_of_plaquettes(double *x, double complex *pl, double complex *u, double complex *g, double *ev, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, int direction, gauge_flags *mode){
+void sum_of_plaquettes(double complex *u, double complex *pl, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, int direction, gauge_flags *mode){
 	// calculates the sum of all plaquettes around U_mu(n)
 	// direction:  1 only for U_{mu,nu}(n)
 	// direction: -1 only for U_{mu,nu}(n)^+
 	// direction:  0 all for i/2*(U_{mu,nu}(n) - U_{mu,nu}(n)^+)
 	const unsigned n = mode->gauge_dim, mat_dim = n*n;
-	double complex *st = u + 6*mat_dim;
+	double complex *z = pl + mat_dim;
+	double complex *st = z + 6*mat_dim;
 	const unsigned *nnl = nnt + ns*nn;
 
-	sum_of_staples(x, st, u, g, ev, nnt, ns, nn, pos, mu, mode);
-	alg2group(x + nnl[pos*nn + mu], u + 3*mat_dim, g, ev, 0, mode);
+	sum_of_staples(u, st, z, nnt, ns, nn, pos, mu, mode);
+	copy_mat(u + nnl[pos*nn + mu], z + 3*mat_dim, n, 0);
 
-	mat_mul(u + 3*mat_dim, st, pl, n);
+	mat_mul(z + 3*mat_dim, st, pl, n);
 
 	if(direction == -1) dagger(pl, n);
 	if(direction == 0) dagger_asym(pl, n);
 }
 
-void sum_of_staples(double *x, double complex *st, double complex *u, double complex *g, double *ev, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, gauge_flags *mode){
+void sum_of_staples(double complex *u, double complex *st, double complex *z, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, gauge_flags *mode){
 	// calculates the sum of all staples around U_mu(n)
 	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2;
-	double complex *prod = u + 3*mat_dim;
+	double complex *prod = z + 3*mat_dim;
 
 	for(unsigned i = 0; i < mat_dim; i++) st[i] = 0;
 	
 	for(unsigned nu = 0; nu < nn; nu++){
 		if(nu % links == mu % links) continue;
 
-		staple_fields(x, u, g, ev, nnt, ns, nn, pos, mu, nu, mode);
+		staple_fields(u, z, nnt, ns, nn, pos, mu, nu, mode);
 
 		for(unsigned i = 0; i < mat_dim; i++) st[i] += prod[i];
 	}
+}
+
+void staple_fields(double complex *u, double complex *z, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
+	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2;
+	const unsigned *nnl = nnt + ns*nn;
+
+	const int turn = nu >= links;
+
+	copy_mat(u + nnl[nnt[pos*nn + mu]*nn + nu], z + 2*mat_dim, n, turn);
+	copy_mat(u + nnl[nnt[pos*nn + nu]*nn + mu], z + 1*mat_dim, n, 1);
+	copy_mat(u + nnl[pos*nn + nu], z, n, 1 - turn);
+
+	mat_prod(z, 3, n);
 }
 
 double strong_coupling_plaquette(double beta, gauge_flags *mode){

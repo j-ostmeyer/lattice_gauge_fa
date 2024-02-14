@@ -17,18 +17,15 @@
 
 #include "gauge_hmc.h"
 
-void gauge_force(double *x, double *p_dot, double beta, unsigned *nnt, unsigned ns, unsigned nn, gauge_flags *mode){
-	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2, ng = mode->num_gen;
+void gauge_force(double complex *u, double *p_dot, double beta, unsigned *nnt, unsigned ns, unsigned nn, gauge_flags *mode){
+	const unsigned n = mode->gauge_dim, links = nn/2, ng = mode->num_gen;
 	double complex *pl = mode->zdummy;
-	double complex *g = pl + mat_dim;
-	double complex *u = g + 4*mat_dim;
-	double *ev = mode->ddummy;
 
 	for(unsigned i = 0; i < ns; i++){
 		for(unsigned mu = 0; mu < links; mu++){
 			const unsigned shift = ng * (mu + i*links);
 
-			sum_of_plaquettes(x, pl, u, g, ev, nnt, ns, nn, i, mu, 0, mode);
+			sum_of_plaquettes(u, pl, nnt, ns, nn, i, mu, 0, mode);
 			project_tr_lambda(pl, p_dot + shift, mode);
 
 			for(unsigned k = 0; k < ng; k++) p_dot[shift + k] *= beta / n;
@@ -51,53 +48,67 @@ double hamilton(double energyP, double pl_av, double beta, unsigned ns, gauge_fl
 	return energyP - .5 * beta * pl_av * ns * nd*(nd-1)/2;
 }
 
-void update_x(double *x, double *p, double complex *xc, double beta, unsigned ns, unsigned nn, double h, const fftw_plan *fft, gauge_flags *mode){
-	const unsigned ng = mode->num_gen, nn2 = nn/2, dim = ns*nn2*ng;
+void update_u(double complex *u, double *p, double *x_dot, double beta, unsigned ns, unsigned nn, double h, const fftw_plan *fft, gauge_flags *mode){
+	const unsigned nn2 = nn/2;
 
 	if(mode->no_fourier_acc){
-		for(unsigned i = 0; i < dim; i++) x[i] += h*p[i];
-	}else evolve_fields(xc, beta, ns, nn2, h, fft, mode);
+		const unsigned ng = mode->num_gen, dim = ns*nn2;
+		const unsigned n = mode->gauge_dim, mat_dim = n*n;
+		double complex *g = mode->zdummy;
+		double complex *up = g + 4*mat_dim;
+		double *ev = mode->ddummy;
+		
+		for(unsigned i = 0; i < dim; i++){
+			const unsigned shiftP = i*nn2*ng, shiftU = i*nn2*mat_dim;
+			for(unsigned k = 0; k < ng; k++) x_dot[shiftP + k] = h*p[shiftP + k];
+			alg2group(x_dot + shiftP, up, g, ev, 0, mode); // exp(i h p)
+			mat_mul(up, u + shiftU, g, n); // exp(i h p) * u
+			copy_mat(g, u + shiftU, n, 0);
+		}
+	}else evolve_fields(u, beta, ns, nn2, h, fft, mode);
 }
 
-void leap_frog(double *x, double *p, double *p_dot, double complex *xc, double beta, unsigned *nnt, unsigned ns, unsigned nn, unsigned steps, double traj_length, const fftw_plan *fft, gauge_flags *mode){
+void leap_frog(double complex *u, double *p, double *p_dot, double *x_dot, double beta, unsigned *nnt, unsigned ns, unsigned nn, unsigned steps, double traj_length, const fftw_plan *fft, gauge_flags *mode){
 	const unsigned ng = mode->num_gen, nn2 = nn/2, dim = ns*nn2*ng;
 	double h = traj_length/steps;
 
-	update_x(x, p, xc, beta, ns, nn, .5*h, fft, mode);
+	update_u(u, p, x_dot, beta, ns, nn, .5*h, fft, mode);
 
 	for(unsigned s = 1; s <= steps; s++){
-		gauge_force(x, p_dot, beta, nnt, ns, nn, mode);
+		gauge_force(u, p_dot, beta, nnt, ns, nn, mode);
 		for(unsigned i = 0; i < dim; i++) p[i] += h*p_dot[i];
 
 		if(s == steps) h *= .5; // only half step in the end
-		update_x(x, p, xc, beta, ns, nn, h, fft, mode);
+		update_u(u, p, x_dot, beta, ns, nn, h, fft, mode);
 	}
 }
 
-short trajectory(double *x, double complex *xc, double beta, unsigned *nnt, unsigned ns, unsigned nn, unsigned steps, double traj_length, int iteration, unsigned meas_freq, double *plaquettes_old, const fftw_plan *fft, FILE *res_out, gauge_flags *mode){
+short trajectory(double *p, double complex *pc, double beta, unsigned *nnt, unsigned ns, unsigned nn, unsigned steps, double traj_length, int iteration, unsigned meas_freq, double *plaquettes_old, const fftw_plan *fft, FILE *res_out, gauge_flags *mode){
 	const unsigned nn2 = nn/2, ng = mode->num_gen, dim = ns*nn2*ng;
 	const unsigned nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim * nn2*ng;
-	double *p = x + dim; // dim
+	const unsigned gd = mode->gauge_dim, group_dim = gd*gd, link_dim = ns*nn2*group_dim;
 	double *p_dot = p + dim; // dim
-	double *x_old = p_dot + dim; // dim
-	double complex *pc = xc + compl_dim;
+	double *x_dot = p_dot + dim; // dim
+	double complex *u = pc + compl_dim;
+	double complex *u_old = u + link_dim;
 
 	double energy, energyP, plaquettes;
 	double energy_old, energyP_old;
 	double boltzmann;
 	short acc = 1;
 
-	for(unsigned i = 0; i < dim; i++) x_old[i] = x[i];
+	for(unsigned i = 0; i < link_dim; i++) u_old[i] = u[i];
 
 	sample_fourier_momenta(p, pc, beta, ns, nn2, fft, mode);
 
 	energyP_old = energy_momenta(p, pc, beta, ns, nn2, fft, mode);
 	energy_old = hamilton(energyP_old, *plaquettes_old, beta, ns, mode);
 
-	leap_frog(x, p, p_dot, xc, beta, nnt, ns, nn, steps, traj_length, fft, mode);
+	leap_frog(u, p, p_dot, x_dot, beta, nnt, ns, nn, steps, traj_length, fft, mode);
+	check_unitarity(u, ns, nn, mode);
 
 	energyP = energy_momenta(p, pc, beta, ns, nn2, fft, mode);
-	plaquettes = plaquette_av(x, nnt, ns, nn, mode);
+	plaquettes = plaquette_av(u, nnt, ns, nn, mode);
 	energy = hamilton(energyP, plaquettes, beta, ns, mode);
 
 	printf("E_p: %g -> %g\n", energyP_old, energyP);
@@ -107,7 +118,7 @@ short trajectory(double *x, double complex *xc, double beta, unsigned *nnt, unsi
 	boltzmann = exp(energy_old-energy);
 	if(!(boltzmann > genrand64_real2())){ // cumbersome expression to avoid problems with NaN
 		// reject (nothing to be done if accepted)
-		for(unsigned i = 0; i < dim; i++) x[i] = x_old[i];
+		for(unsigned i = 0; i < link_dim; i++) u[i] = u_old[i];
 		plaquettes = *plaquettes_old;
 		energyP = energyP_old;
 		energy = energy_old;
@@ -137,10 +148,11 @@ void run_hmc(double beta, unsigned *nnt, unsigned ns, unsigned nn, unsigned step
 	//printf("Hi from run_hmc with %u flavors!!!\n", flavors); fflush(stdout);
 	const unsigned nn2 = nn/2, ng = mode->num_gen, dim = ns*nn2*ng;
 	const unsigned nd = mode->space_dim, nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim * nn2*ng;
-	const unsigned gd = mode->gauge_dim, group_dim = gd*gd;
+	const unsigned gd = mode->gauge_dim, group_dim = gd*gd, link_dim = ns*nn2*group_dim;
 
-	double *x = malloc(4*dim * sizeof(double));
-	fftw_complex *xc = (fftw_complex*) fftw_malloc(2*compl_dim * sizeof(fftw_complex));
+	double *p = malloc(3*dim * sizeof(double));
+	fftw_complex *pc = (fftw_complex*) fftw_malloc((compl_dim + 2*link_dim) * sizeof(fftw_complex));
+	double complex *u = pc + compl_dim;
 
 	mode->zdummy = malloc(20 * (group_dim + nn2*nn2) * sizeof(double complex));
 	mode->ddummy = malloc(10 * gd * sizeof(double));
@@ -152,29 +164,27 @@ void run_hmc(double beta, unsigned *nnt, unsigned ns, unsigned nn, unsigned step
 
 	int *fft_dim = malloc(nd * sizeof(int));
 	for(unsigned i = 0; i < nd; i++) fft_dim[i] = nl;
-	fftw_plan fft[4]; // x/p forward/backward in every combination
-	fft[0] = fftw_plan_many_dft_r2c(nd, fft_dim, nn2*ng, x, NULL, nn2*ng, 1, xc, NULL, nn2*ng, 1, FFTW_MEASURE);
-	fft[1] = fftw_plan_many_dft_r2c(nd, fft_dim, nn2*ng, x+dim, NULL, nn2*ng, 1, xc+compl_dim, NULL, nn2*ng, 1, FFTW_MEASURE);
-	fft[2] = fftw_plan_many_dft_c2r(nd, fft_dim, nn2*ng, xc, NULL, nn2*ng, 1, x, NULL, nn2*ng, 1, FFTW_MEASURE);
-	fft[3] = fftw_plan_many_dft_c2r(nd, fft_dim, nn2*ng, xc+compl_dim, NULL, nn2*ng, 1, x+dim, NULL, nn2*ng, 1, FFTW_MEASURE);
+	fftw_plan fft[2]; // p forward/backward
+	fft[0] = fftw_plan_many_dft_r2c(nd, fft_dim, nn2*ng, p, NULL, nn2*ng, 1, pc, NULL, nn2*ng, 1, FFTW_MEASURE);
+	fft[1] = fftw_plan_many_dft_c2r(nd, fft_dim, nn2*ng, pc, NULL, nn2*ng, 1, p, NULL, nn2*ng, 1, FFTW_MEASURE);
 	free(fft_dim);
 
-	sample_harmonic(x, xc, beta, ns, nn2, fft, mode);
+	sample_id(u, ns, nn2, gd);
 
-	double plaquettes = plaquette_av(x, nnt, ns, nn, mode);
+	double plaquettes = plaquette_av(u, nnt, ns, nn, mode);
 	
 	for(unsigned i = 0; i < therm; i++)
-		trajectory(x, xc, beta, nnt, ns, nn, steps, traj_length, i, therm+1, &plaquettes, fft, NULL, mode);
+		trajectory(p, pc, beta, nnt, ns, nn, steps, traj_length, i, therm+1, &plaquettes, fft, NULL, mode);
 
 	for(unsigned i = 0; i < meas; i++)
-		trajectory(x, xc, beta, nnt, ns, nn, steps, traj_length, i, meas_freq, &plaquettes, fft, res_out, mode);
+		trajectory(p, pc, beta, nnt, ns, nn, steps, traj_length, i, meas_freq, &plaquettes, fft, res_out, mode);
 
-	free(x);
-	fftw_free(xc);
+	free(p);
+	fftw_free(pc);
 	free(mode->zdummy);
 	free(mode->ddummy);
 	free(mode->idummy);
 	if(res_out) fclose(res_out);
 
-	for(unsigned i = 0; i < 4; i++)	fftw_destroy_plan(fft[i]);
+	for(unsigned i = 0; i < 2; i++)	fftw_destroy_plan(fft[i]);
 }

@@ -4,9 +4,11 @@
 #include <complex.h>
 
 #include "mt19937-64.h"
-#include "gauge_random.h"
 
+#include "gauge_flags.h"
 #include "gauge_aux.h"
+
+#include "gauge_random.h"
 
 void random_vector(double *x, unsigned N){
 	// Box-Muller algorithm for normal distribution
