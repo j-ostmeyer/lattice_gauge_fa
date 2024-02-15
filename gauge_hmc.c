@@ -59,7 +59,7 @@ void update_u(double complex *u, double *p, double *x_dot, double beta, unsigned
 		double *ev = mode->ddummy;
 		
 		for(unsigned i = 0; i < dim; i++){
-			const unsigned shiftP = i*nn2*ng, shiftU = i*nn2*mat_dim;
+			const unsigned shiftP = i*ng, shiftU = i*mat_dim;
 			for(unsigned k = 0; k < ng; k++) x_dot[shiftP + k] = h*p[shiftP + k];
 			alg2group(x_dot + shiftP, up, g, ev, 0, mode); // exp(i h p)
 			mat_mul(up, u + shiftU, g, n); // exp(i h p) * u

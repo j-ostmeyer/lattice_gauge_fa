@@ -108,17 +108,17 @@ void construct_id(double complex *m, unsigned n){
 
 void check_unitarity(double complex *u, unsigned ns, unsigned nn, gauge_flags *mode){
 	// Gram-Schmidt unitarise all the links
-	const unsigned nn2 = nn/2, gd = mode->gauge_dim, dim = ns*nn2, stride = nn2*gd;
+	const unsigned nn2 = nn/2, gd = mode->gauge_dim, dim = ns*nn2, mat_dim = gd*gd;
 
 	for(unsigned pos = 0; pos < dim; pos++){
 		for(unsigned i = 0; i < gd; i++){
-			const unsigned shift1 = pos*stride + i*gd;
+			const unsigned shift1 = pos*mat_dim + i*gd;
 			const double one = 1./sqrt(vec_norm(u + shift1, gd));
 
 			for(unsigned k = 0; k < gd; k++) u[shift1 + k] *= one; // normalise
 
 			for(unsigned j = i+1; j < gd; j++){
-				const unsigned shift2 = pos*stride + j*gd;
+				const unsigned shift2 = pos*mat_dim + j*gd;
 				const double complex zero = scalar_dot(u + shift1, u + shift2, gd);
 
 				for(unsigned k = 0; k < gd; k++) u[shift2 + k] -= zero * u[shift1 + k]; // orthogonalise
