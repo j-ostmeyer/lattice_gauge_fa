@@ -18,7 +18,7 @@
 #include "gauge_hmc.h"
 
 void gauge_force(double complex *u, double *p_dot, double beta, unsigned *nnt, unsigned ns, unsigned nn, gauge_flags *mode){
-	const unsigned n = mode->gauge_dim, links = nn/2, ng = mode->num_gen;
+	const unsigned links = nn/2, ng = mode->num_gen;
 	double complex *pl = mode->zdummy;
 
 	for(unsigned i = 0; i < ns; i++){
@@ -132,7 +132,7 @@ short trajectory(double *p, double complex *pc, double beta, unsigned *nnt, unsi
 		
 		// collection of different results, current dimension = NUM_RES = 5
 		results[0] = plaquettes / gd; // average plaquette
-		results[1] = plaquettes / gd / strong_coupling_plaquette(beta, mode) - 1; // plaquette deviation from strong coupling result
+		results[1] = plaquettes / gd / plaquettes_old[1] - 1; // relative plaquette deviation from strong coupling result
 		results[2] = energy; // HMC energy
 		results[3] = acc; // acceptance
 		results[4] = boltzmann; // exp(-dH), should average to 1
@@ -171,13 +171,15 @@ void run_hmc(double beta, unsigned *nnt, unsigned ns, unsigned nn, unsigned step
 
 	sample_id(u, ns, nn2, gd);
 
-	double plaquettes = plaquette_av(u, nnt, ns, nn, mode);
+	double plaquettes[2];
+	plaquettes[0] = plaquette_av(u, nnt, ns, nn, mode);
+	plaquettes[1] = strong_coupling_plaquette(beta, mode);
 	
 	for(unsigned i = 0; i < therm; i++)
-		trajectory(p, pc, beta, nnt, ns, nn, steps, traj_length, i, therm+1, &plaquettes, fft, NULL, mode);
+		trajectory(p, pc, beta, nnt, ns, nn, steps, traj_length, i, therm+1, plaquettes, fft, NULL, mode);
 
 	for(unsigned i = 0; i < meas; i++)
-		trajectory(p, pc, beta, nnt, ns, nn, steps, traj_length, i, meas_freq, &plaquettes, fft, res_out, mode);
+		trajectory(p, pc, beta, nnt, ns, nn, steps, traj_length, i, meas_freq, plaquettes, fft, res_out, mode);
 
 	free(p);
 	fftw_free(pc);
