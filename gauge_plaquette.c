@@ -118,6 +118,8 @@ double strong_coupling_pl_u1(double b, unsigned d){
 
 double strong_coupling_pl_pade_u1(double b, double d){
 	// 7th order Pade approximation using 16th order expansion
+	// has extended convergence radius, but gives only 4-8 significant digits due to rounding errors
+	// numerical stability gets worse with larger beta
 	return (b/8. + ((-12974646990677 + 25354264107816*d - 19632612358080*pow(d,2) + 
 					7550201272320*pow(d,3) - 1448268595200*pow(d,4) + 111476736000*pow(d,5))*
 				pow(b,3))/
@@ -158,6 +160,7 @@ double strong_coupling_pl_su2(double b, unsigned d){
 
 double strong_coupling_pl_pade_su2(double b, double d){
 	// 7th order Pade approximation using 16th order expansion
+	// has extended convergence radius and is numerically very stable
 	return (b/4. - (5*(-4885734200 + 9494876445*d - 6023960973*pow(d,2) + 1765299690*pow(d,3) - 
 					350320950*pow(d,4) + 45927000*pow(d,5))*pow(b,3))/
 			(192.*(-624270496 + 1079133400*d + 163731525*pow(d,2) - 508863600*pow(d,3) + 
@@ -195,6 +198,7 @@ double strong_coupling_pl_su3(double b, unsigned d){
 
 double strong_coupling_pl_pade_su3(double b, double d){
 	// 7th order Pade approximation using 16th order expansion
+	// has extended convergence radius, but gives only around 4 significant digits due to rounding errors
 	return (-2.*b*(3.844516909690548e40*pow(d,12)*pow(b,6) - 
 				3.754411044619676e36*pow(d,11)*pow(b,2)*
 				(1.65888e6 - 2.592e6*b + 1.070784e6*pow(b,2) + 3528.*pow(b,3) + 550079.*pow(b,4)) - 
