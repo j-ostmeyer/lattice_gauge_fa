@@ -28,7 +28,7 @@ void gauge_force(double complex *u, double *p_dot, double beta, unsigned *nnt, u
 			sum_of_plaquettes(u, pl, nnt, ns, nn, i, mu, 0, mode);
 			project_tr_lambda(pl, p_dot + shift, mode);
 
-			for(unsigned k = 0; k < ng; k++) p_dot[shift + k] *= beta / n;
+			for(unsigned k = 0; k < ng; k++) p_dot[shift + k] *= beta;
 		}
 	}
 }
@@ -131,8 +131,8 @@ short trajectory(double *p, double complex *pc, double beta, unsigned *nnt, unsi
 		double *results = mode->ddummy;
 		
 		// collection of different results, current dimension = NUM_RES = 5
-		results[0] = plaquettes; // average plaquette
-		results[1] = plaquettes - strong_coupling_plaquette(beta, mode); // plaquette deviation from strong coupling result
+		results[0] = plaquettes / gd; // average plaquette
+		results[1] = plaquettes / gd / strong_coupling_plaquette(beta, mode) - 1; // plaquette deviation from strong coupling result
 		results[2] = energy; // HMC energy
 		results[3] = acc; // acceptance
 		results[4] = boltzmann; // exp(-dH), should average to 1
