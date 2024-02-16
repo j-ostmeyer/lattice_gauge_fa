@@ -18,7 +18,7 @@
 #include "gauge_hmc.h"
 
 void gauge_force(double complex *u, double *p_dot, double beta, unsigned *nnt, unsigned ns, unsigned nn, gauge_flags *mode){
-	const unsigned links = nn/2, ng = mode->num_gen;
+	const unsigned links = nn/2, ng = mode->num_gen, nc = mode->gauge_dim;
 	double complex *pl = mode->zdummy;
 
 	for(unsigned i = 0; i < ns; i++){
@@ -28,7 +28,7 @@ void gauge_force(double complex *u, double *p_dot, double beta, unsigned *nnt, u
 			sum_of_plaquettes(u, pl, nnt, ns, nn, i, mu, 0, mode);
 			project_tr_lambda(pl, p_dot + shift, mode);
 
-			for(unsigned k = 0; k < ng; k++) p_dot[shift + k] *= beta;
+			for(unsigned k = 0; k < ng; k++) p_dot[shift + k] *= 2*beta / nc;
 		}
 	}
 }
@@ -43,9 +43,9 @@ double energy_momenta(double *p, double complex *pc, double beta, unsigned ns, u
 }
 
 double hamilton(double energyP, double pl_av, double beta, unsigned ns, gauge_flags *mode){
-	const unsigned nd = mode->space_dim;
+	const unsigned nd = mode->space_dim, nc = mode->gauge_dim;
 
-	return energyP - .5 * beta * pl_av * ns * nd*(nd-1)/2;
+	return energyP - beta / nc * pl_av * ns * nd*(nd-1)/2;
 }
 
 void update_u(double complex *u, double *p, double *x_dot, double beta, unsigned ns, unsigned nn, double h, const fftw_plan *fft, gauge_flags *mode){
@@ -158,6 +158,15 @@ void run_hmc(double beta, unsigned *nnt, unsigned ns, unsigned nn, unsigned step
 	mode->ddummy = malloc(10 * gd * sizeof(double));
 	mode->idummy = malloc(nn * sizeof(int));
 
+	sample_id(u, ns, nn2, gd);
+
+	double plaquettes[2];
+	plaquettes[0] = plaquette_av(u, nnt, ns, nn, mode);
+	plaquettes[1] = strong_coupling_plaquette(beta, mode);
+
+	//printf("%.16g\n", plaquettes[1]);
+	//exit(0);
+
 	FILE *res_out = res_name? fopen(res_name, "a"): NULL;
 
 	init_genrand64(time(NULL));
@@ -168,12 +177,6 @@ void run_hmc(double beta, unsigned *nnt, unsigned ns, unsigned nn, unsigned step
 	fft[0] = fftw_plan_many_dft_r2c(nd, fft_dim, nn2*ng, p, NULL, nn2*ng, 1, pc, NULL, nn2*ng, 1, FFTW_MEASURE);
 	fft[1] = fftw_plan_many_dft_c2r(nd, fft_dim, nn2*ng, pc, NULL, nn2*ng, 1, p, NULL, nn2*ng, 1, FFTW_MEASURE);
 	free(fft_dim);
-
-	sample_id(u, ns, nn2, gd);
-
-	double plaquettes[2];
-	plaquettes[0] = plaquette_av(u, nnt, ns, nn, mode);
-	plaquettes[1] = strong_coupling_plaquette(beta, mode);
 	
 	for(unsigned i = 0; i < therm; i++)
 		trajectory(p, pc, beta, nnt, ns, nn, steps, traj_length, i, therm+1, plaquettes, fft, NULL, mode);
