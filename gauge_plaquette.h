@@ -10,9 +10,9 @@ void staple_fields(double complex *u, double complex *z, unsigned *nnt, unsigned
 
 double strong_coupling_plaquette(double beta, gauge_flags *mode);
 double strong_coupling_pl_u1(double b, unsigned d);
-double strong_coupling_pl_pade_u1(double b, double d);
+double strong_coupling_pl_pade_u1(double b, long d);
 double strong_coupling_pl_su2(double b, unsigned d);
-double strong_coupling_pl_pade_su2(double b, double d);
+double strong_coupling_pl_pade_su2(double b, long d);
 double strong_coupling_pl_su3(double b, unsigned d);
 double strong_coupling_pl_pade_su3(double b, double d);
 

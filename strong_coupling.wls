@@ -14,27 +14,27 @@
 
 
 (* ::Input:: *)
-(*pl[f_,d_,\[Beta]_]:=D[f[b,d],b]/.b->\[Beta]/2*)
+(*pl[f_,d_,b_,n_]:=D[f[\[Beta],d],\[Beta]]/.\[Beta]->b/n*)
 
 
 (* ::Input:: *)
-(*pdpl[f_,d_,\[Beta]_]:=PadeApproximant[D[f[c,d],c]/.c->b,{b,0,7}]/.b->\[Beta]/2*)
+(*pdpl[f_,d_,b_,n_]:=PadeApproximant[D[f[c,d],c]/.c->\[Beta],{\[Beta],0,7}]/.\[Beta]->b/n*)
 
 
 (* ::Input:: *)
-(*NumberForm[Collect[N[pl[fu1,d,\[Beta]]]//Simplify,\[Beta]],16]//CForm*)
+(*pl[fu1,d,b,1]*)
 
 
 (* ::Input:: *)
-(*pdpl[fu1,d,\[Beta]]//CForm*)
+(*HornerForm[pdpl[fu1,d,b,1]//Simplify]//CForm*)
 
 
 (* ::Input:: *)
-(*pdpl[fsu2,d,\[Beta]]//CForm*)
+(*pdpl[fsu2,d,b,2]//Simplify//HornerForm//CForm*)
 
 
 (* ::Input:: *)
-(*pdpl[fsu3,d,\[Beta]]//Simplify//N//CForm*)
+(*pdpl[fsu3,d,b,3]//Simplify//HornerForm//N//CForm*)
 
 
 (* ::Input:: *)
@@ -51,3 +51,7 @@
 
 (* ::Input:: *)
 (*D[fu1[c,2],c]*)
+
+
+(* ::Input:: *)
+(*N[pdpl[fsu3,2,1/2,3],16]*)
