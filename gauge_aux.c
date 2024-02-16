@@ -106,24 +106,28 @@ void construct_id(double complex *m, unsigned n){
 	for(unsigned i = 0; i < n; i++) m[i*n1] = 1;
 }
 
+void mod_gram_schmidt(double complex *u, unsigned n, unsigned d){
+	for(unsigned i = 0; i < n; i++){
+		const unsigned shift1 = i*d;
+		const double one = 1./sqrt(vec_norm(u + shift1, d));
+
+		for(unsigned k = 0; k < d; k++) u[shift1 + k] *= one; // normalise
+
+		for(unsigned j = i+1; j < n; j++){
+			const unsigned shift2 = j*d;
+			const double complex zero = scalar_dot(u + shift1, u + shift2, d);
+
+			for(unsigned k = 0; k < d; k++) u[shift2 + k] -= zero * u[shift1 + k]; // orthogonalise
+		}
+	}
+}
+
 void check_unitarity(double complex *u, unsigned ns, unsigned nn, gauge_flags *mode){
-	// Gram-Schmidt unitarise all the links
+	// Modified Gram-Schmidt unitarise all the links
 	const unsigned nn2 = nn/2, gd = mode->gauge_dim, dim = ns*nn2, mat_dim = gd*gd;
 
 	for(unsigned pos = 0; pos < dim; pos++){
-		for(unsigned i = 0; i < gd; i++){
-			const unsigned shift1 = pos*mat_dim + i*gd;
-			const double one = 1./sqrt(vec_norm(u + shift1, gd));
-
-			for(unsigned k = 0; k < gd; k++) u[shift1 + k] *= one; // normalise
-
-			for(unsigned j = i+1; j < gd; j++){
-				const unsigned shift2 = pos*mat_dim + j*gd;
-				const double complex zero = scalar_dot(u + shift1, u + shift2, gd);
-
-				for(unsigned k = 0; k < gd; k++) u[shift2 + k] -= zero * u[shift1 + k]; // orthogonalise
-			}
-		}
+		mod_gram_schmidt(u + pos*mat_dim, gd, gd);
 	}
 }
 

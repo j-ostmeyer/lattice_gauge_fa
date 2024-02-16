@@ -39,6 +39,7 @@ double complex scalar_dot(double complex *x, double complex *y, unsigned d);
 double reTr(double complex *u, unsigned d);
 void construct_id(double complex *m, unsigned n);
 
+void mod_gram_schmidt(double complex *u, unsigned n, unsigned d);
 void check_unitarity(double complex *u, unsigned ns, unsigned nn, gauge_flags *mode);
 
 void copy_mat(double complex *x, double complex *y, unsigned n, int dagger);
