@@ -18,88 +18,114 @@
 
 #include "gauge_harmonic.h"
 
-void fill_harm_mat(double complex *u, unsigned nn2, unsigned nl, unsigned i, gauge_flags *mode){
-	const unsigned loc_dim = nl/2+1;
-	const double matsubara = M_PI / nl;
-	double *w = mode->ddummy;
-	double *z = w + nn2;
-
-	double diag = 0;
-	unsigned ind = i / loc_dim, pos = i % loc_dim;
-
-	for(unsigned k = 0; k < nn2; k++){
-		z[k] = matsubara * pos;
-		w[k] = sin(z[k]);
-		diag += w[k] * w[k];
-		pos = ind % nl;
-		ind /= nl;
-	}
-
-	for(unsigned k = 0; k < nn2; k++) u[k*(nn2+1)] = 2 * diag;
-
-	for(unsigned k1 = 1; k1 < nn2; k1++){
-		const unsigned shift = k1*nn2;
-		for(unsigned k2 = 0; k2 < k1; k2++){
-			u[shift + k2] = 2 * w[k1] * w[k2] * cexp(I * (z[k1] - z[k2]));
-		}
-	}
-}
-
 void sample_id(double complex *u, unsigned ns, unsigned nn2, unsigned gd){
 	const unsigned dim = ns*nn2, group_dim = gd*gd;
 	
 	for(unsigned i = 0; i < dim; i++) construct_id(u + i*group_dim, gd);
 }
 
+double fill_harm_mat(double complex *m, unsigned nn2, unsigned nl, unsigned i, gauge_flags *mode){
+	// fill unitary matrix of eigenvectors, return non-zero eigenvalue
+	const unsigned loc_dim = nl/2+1, mat_dim = nn2*nn2;
+	const double matsubara = M_PI / nl;
+	double *w = mode->ddummy;
+	double *z = w + nn2;
+	double complex *y = m + mat_dim;
+
+	double diag = 0, wmx = 0;
+	unsigned ind = i / loc_dim, pos = i % loc_dim, imx = 0;
+
+	for(unsigned k = 0; k < nn2; k++){
+		z[k] = matsubara * pos;
+		w[k] = sin(z[k]);
+		y[k] = cexp(I * z[k]);
+		diag += w[k] * w[k];
+
+		if(fabs(w[k]) > wmx) imx = k;
+
+		pos = ind % nl;
+		ind /= nl;
+	}
+
+	// 0th eigenvector, m*v0 = 0
+	const double w_inv = 1./sqrt(diag);
+	for(unsigned k = 0; k < nn2; k++) m[k] = w_inv * w[k] * y[k];
+
+	// remaining eigenvectors, m*v_j = diag * v_j
+	for(unsigned k = nn2; k < mat_dim; k++) m[k] = 0;
+	for(unsigned i = 0, j = 0; i < nn2; i++){
+		if(i == imx) continue; // spanning the eigenspace with best pivoting
+		j++;
+		
+		const unsigned shift = j*nn2;
+		m[shift + imx] =  y[imx] * w[i];
+		m[shift + i  ] = -y[i]   * w[imx];
+	}
+
+	// make the matrix unitary
+	mod_gram_schmidt(m + nn2, nn2-1, nn2);
+
+	//print_zmat(m, nn2);
+
+	return diag;
+}
+
+void mat_mul_basis(double complex *x, double complex *y, double complex *m, unsigned nn2, unsigned ng, unsigned j, int dagger){
+	for(unsigned k1 = 0; k1 < nn2; k1++){
+		const unsigned shiftM = k1*nn2, shift = k1*ng + j;
+		y[shift] = 0;
+
+		for(unsigned k2 = 0; k2 < nn2; k2++){
+			if(dagger){
+				y[shift] += conj(m[shiftM + k2]) * x[j + k2*ng];
+			}else{
+				y[shift] += m[k1 + k2*nn2] * x[j + k2*ng];
+			}
+		}
+	}
+}
+
 void sample_fourier_momenta(double *p, double complex *pc, double beta, unsigned ns, unsigned nn2, const fftw_plan *fft, gauge_flags *mode){
-	const unsigned ng = mode->num_gen, dim = ns*nn2*ng;
+	const unsigned nc = mode->gauge_dim, ng = mode->num_gen, dim = ns*nn2*ng;
 	const unsigned nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim;
-	const double scale = sqrt(beta) / ns;
-	double complex *u = mode->zdummy;
-	double complex *tmp = u + nn2*nn2;
+	const double scale = sqrt(2*beta / nc) / ns;
+	double complex *m = mode->zdummy;
+	double complex *tmp = m + nn2*nn2;
 
 	random_vector(p, dim);
 
 	if(mode->no_fourier_acc) return;
 
-	fftw_execute(fft[1]);
+	fftw_execute(fft[0]);
 
-	//const double pii = 1. / M_PI / ns;
-	for(unsigned j = 0; j < nn2*ng; j++) pc[j] *= 0; //pii;
+	// project zero eigenmodes to 0
+	for(unsigned j = 0; j < nn2*ng; j++) pc[j] = 0;
 
 	for(unsigned i = 1; i < compl_dim; i++){
-		fill_harm_mat(u, nn2, nl, i, mode);
-		LAPACKE_zpotrf(LAPACK_ROW_MAJOR, 'L', nn2, u, nn2); // Cholesky-decompose
-
+		const double ev = fill_harm_mat(m, nn2, nl, i, mode), fac = scale*sqrt(ev);
 		const unsigned shift = i*nn2*ng;
-		for(unsigned j = 0; j < ng; j++){ // sub-optimal cache-locality, but array should be small enough
-			const unsigned shiftP = shift + j;
-			
-			for(unsigned k1 = 0; k1 < nn2; k1++){
-				const unsigned shiftU = k1*nn2;
-				tmp[k1] = 0;
 
-				for(unsigned k2 = 0; k2 <= k1; k2++){
-					tmp[k1] += u[shiftU + k2] * pc[shiftP + k2*ng];
-				}
-			}
-			for(unsigned k1 = 0; k1 < nn2; k1++) pc[shiftP + k1*ng] = scale * tmp[k1];
+		for(unsigned j = 0; j < ng; j++){ // sub-optimal cache-locality, but array should be small enough
+			mat_mul_basis(pc + shift, tmp, m, nn2, ng, j, 1);
+
+			tmp[j] = 0; // 0th eigenvalue is zero
+			for(unsigned k = 1; k < nn2; k++) tmp[j + k*ng] *= fac;
+
+			mat_mul_basis(tmp, pc + shift, m, nn2, ng, j, 0);
 		}
 	}
 
-	fftw_execute(fft[3]);
+	fftw_execute(fft[1]);
 }
 
 double energy_fourier_momenta(double complex *pc, double beta, unsigned ns, unsigned nn2, const fftw_plan *fft, gauge_flags *mode){
-	const unsigned ng = mode->num_gen;
+	const unsigned nc = mode->gauge_dim, ng = mode->num_gen;
 	const unsigned nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim;
-	double complex *u = mode->zdummy;
+	double complex *m = mode->zdummy;
+	double complex *tmp = m + nn2*nn2;
 	double en = 0;
 
-	fftw_execute(fft[1]);
-
-	//const double pi2 = .5 * M_PI*M_PI * beta;
-	//for(unsigned j = 0; j < nn2*ng; j++) en += norm(pc[j]) * pi2;
+	fftw_execute(fft[0]);
 
 	for(unsigned i = 1; i < compl_dim; i++){
 		const unsigned pos = i % loc_dim;
@@ -108,72 +134,42 @@ double energy_fourier_momenta(double complex *pc, double beta, unsigned ns, unsi
 		// elements t=1...Nt/2-1 occur twice (as complex conj pairs), but are stored only once
 		if(pos > 0 && pos < (nl+1)/2) weight *= 2;
 
-		fill_harm_mat(u, nn2, nl, i, mode);
-		LAPACKE_zpotrf(LAPACK_ROW_MAJOR, 'L', nn2, u, nn2); // Cholesky-decompose
-		LAPACKE_zpotri(LAPACK_ROW_MAJOR, 'L', nn2, u, nn2); // invert
-
+		const double ev = fill_harm_mat(m, nn2, nl, i, mode), fac = weight/ev;
 		const unsigned shift = i*nn2*ng;
+
 		for(unsigned j = 0; j < ng; j++){ // sub-optimal cache-locality, but array should be small enough
-			const unsigned shiftP = shift + j;
-			
-			for(unsigned k1 = 0; k1 < nn2; k1++){
-				const unsigned shiftU = k1*nn2;
-				double complex tmp = 0;
+			mat_mul_basis(pc + shift, tmp, m, nn2, ng, j, 1);
 
-				unsigned k2;
-				for(k2 = 0; k2 <= k1; k2++)
-					tmp += u[shiftU + k2] * pc[shiftP + k2*ng];
-				for(; k2 < nn2; k2++)
-					tmp += conj(u[k2*nn2 + k1]) * pc[shiftP + k2*ng];
-
-				const double complex proj = pc[shiftP + k1*ng];
-				en += weight * (creal(proj)*creal(tmp) + cimag(proj)*cimag(tmp));
-			}
+			for(unsigned k = 1; k < nn2; k++) en += fac * norm(tmp[j + k*ng]);
 		}
 	}
 
-	return en / beta / ns;
+	return en / beta/2*nc / ns;
 }
 
-void evolve_fields(double complex *xc, double beta, unsigned ns, unsigned nn2, double h, const fftw_plan *fft, gauge_flags *mode){
-	const unsigned ng = mode->num_gen;
+void get_fourier_x_dot(double complex *pc, double beta, unsigned ns, unsigned nn2, double h, const fftw_plan *fft, gauge_flags *mode){
+	const unsigned nc = mode->gauge_dim, ng = mode->num_gen;
 	const unsigned nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim;
-	const double ivol = 1. / ns;
-	double complex *u = mode->zdummy;
-	double complex *pc = xc + compl_dim * nn2*ng;
+	const double scale = h / beta/2*nc / ns;
+	double complex *m = mode->zdummy;
+	double complex *tmp = m + nn2*nn2;
 
 	fftw_execute(fft[0]);
-	fftw_execute(fft[1]);
 
-	//const double pi2 = M_PI*M_PI * h;
-	for(unsigned j = 0; j < nn2*ng; j++){
-		//xc[j] += pi2 * pc[j];
-		xc[j] *= ivol;
-	}
+	// project zero eigenmodes to 0
+	for(unsigned j = 0; j < nn2*ng; j++) pc[j] = 0;
 
 	for(unsigned i = 1; i < compl_dim; i++){
-		fill_harm_mat(u, nn2, nl, i, mode);
-		LAPACKE_zpotrf(LAPACK_ROW_MAJOR, 'L', nn2, u, nn2); // Cholesky-decompose
-		LAPACKE_zpotri(LAPACK_ROW_MAJOR, 'L', nn2, u, nn2); // invert
-
+		const double ev = fill_harm_mat(m, nn2, nl, i, mode), fac = scale/ev;
 		const unsigned shift = i*nn2*ng;
+
 		for(unsigned j = 0; j < ng; j++){ // sub-optimal cache-locality, but array should be small enough
-			const unsigned shiftP = shift + j;
-			
-			for(unsigned k1 = 0; k1 < nn2; k1++){
-				const unsigned shiftU = k1*nn2;
-				double complex tmp = 0;
+			mat_mul_basis(pc + shift, tmp, m, nn2, ng, j, 1);
 
-				unsigned k2;
-				for(k2 = 0; k2 <= k1; k2++)
-					tmp += u[shiftU + k2] * pc[shiftP + k2*ng];
-				for(; k2 < nn2; k2++)
-					tmp += conj(u[k2*nn2 + k1]) * pc[shiftP + k2*ng];
+			tmp[j] = 0; // Gauge-fixing: no dynamics on zero eigenmodes
+			for(unsigned k = 1; k < nn2; k++) tmp[j + k*ng] *= fac;
 
-				const unsigned pos = shiftP + k1*ng;
-				xc[pos] += h / beta * tmp;
-				xc[pos] *= ivol;
-			}
+			mat_mul_basis(tmp, pc + shift, m, nn2, ng, j, 0);
 		}
 	}
 
