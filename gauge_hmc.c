@@ -133,9 +133,11 @@ short trajectory(double *p, double complex *pc, double beta, unsigned *nnt, unsi
 		// collection of different results, current dimension = NUM_RES = 5
 		results[0] = plaquettes / gd; // average plaquette
 		results[1] = plaquettes / gd / plaquettes_old[1] - 1; // relative plaquette deviation from strong coupling result
-		results[2] = energy; // HMC energy
-		results[3] = acc; // acceptance
-		results[4] = boltzmann; // exp(-dH), should average to 1
+		results[2] = topo_charge(u, nnt, ns, nn, mode); // topological charge in 4D
+		results[3] = results[2]*results[2];
+		results[4] = energy; // HMC energy
+		results[5] = acc; // acceptance
+		results[6] = boltzmann; // exp(-dH), should average to 1
 
 		fprint_results(res_out, results, 1, NUM_RES);
 	}

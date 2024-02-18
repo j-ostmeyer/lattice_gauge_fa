@@ -17,7 +17,7 @@ double plaquette_av(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, 
 	for(unsigned i = 0; i < ns; i++){
 		for(unsigned nu = 1; nu < links; nu++){
 			for(unsigned mu = 0; mu < nu; mu++){
-				plaquettes += plaquette_fields(u, nnt, ns, nn, i, mu, nu, mode);
+				plaquettes += plaquette_tr(u, nnt, ns, nn, i, mu, nu, mode);
 			}
 		}
 	}
@@ -25,17 +25,31 @@ double plaquette_av(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, 
 	return plaquettes * 2/nd/(nd-1) / ns;
 }
 
-double plaquette_fields(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
-	const unsigned n = mode->gauge_dim, mat_dim = n*n;
+double plaquette_tr(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
+	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2;
 	const unsigned *nnl = nnt + ns*nn;
 	double complex *z = mode->zdummy;
 
-	copy_mat(u + nnl[pos*nn + mu], z + 3*mat_dim, n, 0);
-	copy_mat(u + nnl[nnt[pos*nn + mu]*nn + nu], z + 2*mat_dim, n, 0);
-	copy_mat(u + nnl[nnt[pos*nn + nu]*nn + mu], z + 1*mat_dim, n, 1);
-	copy_mat(u + nnl[pos*nn + nu], z, n, 1);
+	const int turnM = mu >= links;
+
+	copy_mat(u + nnl[pos*nn + mu], z + 3*mat_dim, n, turnM);
+	copy_staple(u, z, nnt, ns, nn, pos, mu, nu, mode);
 
 	return trace_prod(z, 4, n);
+}
+
+void plaquette_mat(double complex *u, double complex *z, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, int direction, gauge_flags *mode){
+	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2;
+	const unsigned *nnl = nnt + ns*nn;
+
+	const int turnM = mu >= links;
+
+	copy_mat(u + nnl[pos*nn + mu], z + 3*mat_dim, n, turnM);
+	copy_staple(u, z, nnt, ns, nn, pos, mu, nu, mode);
+
+	mat_prod(z, 4, n);
+
+	if(direction == 1) dagger(z + 4*mat_dim, n);
 }
 
 void sum_of_plaquettes(double complex *u, double complex *pl, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, int direction, gauge_flags *mode){
@@ -74,16 +88,92 @@ void sum_of_staples(double complex *u, double complex *st, double complex *z, un
 }
 
 void staple_fields(double complex *u, double complex *z, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
+	const unsigned n = mode->gauge_dim;
+
+	copy_staple(u, z, nnt, ns, nn, pos, mu, nu, mode);
+
+	mat_prod(z, 3, n);
+}
+
+void copy_staple(double complex *u, double complex *z, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
 	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2;
 	const unsigned *nnl = nnt + ns*nn;
 
-	const int turn = nu >= links;
+	const int turnM = mu >= links;
+	const int turnN = nu >= links;
 
-	copy_mat(u + nnl[nnt[pos*nn + mu]*nn + nu], z + 2*mat_dim, n, turn);
-	copy_mat(u + nnl[nnt[pos*nn + nu]*nn + mu], z + 1*mat_dim, n, 1);
-	copy_mat(u + nnl[pos*nn + nu], z, n, 1 - turn);
+	copy_mat(u + nnl[nnt[pos*nn + mu]*nn + nu], z + 2*mat_dim, n, turnN);
+	copy_mat(u + nnl[nnt[pos*nn + nu]*nn + mu], z + 1*mat_dim, n, 1 - turnM);
+	copy_mat(u + nnl[pos*nn + nu], z, n, 1 - turnN);
+}
 
-	mat_prod(z, 3, n);
+double topo_charge(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, gauge_flags *mode){
+	const unsigned nd = mode->space_dim;
+
+	switch(nd){
+		case 4:
+			return topo_charge_4d(u, nnt, ns, nn, mode);
+		default:
+			return 0;
+	}
+}
+
+double topo_charge_4d(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, gauge_flags *mode){
+	const unsigned links = nn/2;
+	double charge = 0;
+
+	for(unsigned i = 0; i < ns; i++){
+		const unsigned mu = 0; // 8 equivalent permutations can be summarised with same mu
+		for(unsigned nu = 1; nu < links; nu++){
+			charge += clover_field_tr(u, nnt, ns, nn, i, mu, nu, mode);
+		}
+	}
+
+	return charge /32/M_PI/M_PI / ns;
+}
+
+double clover_field_tr(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
+	// only works for mu = 0, nu > 0 in 4D
+	unsigned rho = 0, sigma = 0;
+	switch(nu){
+		case 1:
+			rho = 2; sigma = 3;
+			break;
+		case 2:
+			rho = 3; sigma = 1;
+			break;
+		case 3:
+			rho = 1; sigma = 2;
+			break;
+	}
+
+	const unsigned n = mode->gauge_dim, mat_dim = n*n;
+	double complex *cl = mode->zdummy;
+	double complex *z = cl + 2*mat_dim;
+
+	clover_mat(u, cl + mat_dim, z, nnt, ns, nn, pos, mu, nu, mode);
+	clover_mat(u, cl, z, nnt, ns, nn, pos, rho, sigma, mode);
+
+	return trace_prod(cl, 2, n);
+}
+
+void clover_mat(double complex *u, double complex *cl, double complex *z, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
+	// calculates the clover matrix, i.e. the field strength tensor F_{mu,nu}(n)
+	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2;
+	double complex *prod = z + 4*mat_dim;
+
+	for(unsigned i = 0; i < mat_dim; i++) cl[i] = 0;
+	
+	for(unsigned dir1 = 0; dir1 < 2; dir1++){
+		for(unsigned dir2 = 0; dir2 < 2; dir2++){
+
+			plaquette_mat(u, z, nnt, ns, nn, pos, mu + dir1*links, nu + dir2*links, (dir1 + dir2) % 2, mode);
+
+			for(unsigned i = 0; i < mat_dim; i++) cl[i] += prod[i];
+		}
+	}
+	
+	dagger_asym(cl, n);
 }
 
 double strong_coupling_plaquette(double beta, gauge_flags *mode){
