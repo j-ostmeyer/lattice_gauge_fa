@@ -28,7 +28,7 @@ ifneq (,$(call findany,login viz,$(HOSTNAME)))
   #MYLIBS += -L$$LAPACKLIB
   #MYLIBS += -L$$OPENBLASLIB -lopenblas
 else
-  MYFLAGS += -g -Og -fsanitize=address -static-libasan
+  #MYFLAGS += -g -Og -fsanitize=address -static-libasan
   MYLIBS += -llapacke -llapack -lblas
 endif
 
