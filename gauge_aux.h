@@ -1,7 +1,7 @@
 #ifndef GAUGE_AUX
 #define GAUGE_AUX
 
-#define NUM_RES 7
+#define NUM_RES 8
 
 #ifndef M_PI
 #define M_PI 3.141592653589793

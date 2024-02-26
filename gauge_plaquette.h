@@ -16,6 +16,10 @@ double topo_charge_4d(double complex *u, unsigned *nnt, unsigned ns, unsigned nn
 double complex clover_field_tr(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode);
 void clover_mat(double complex *u, double complex *cl, double complex *z, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode);
 
+double wilson_loop_av(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned a, unsigned b, gauge_flags *mode);
+double complex wilson_loop_tr(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, unsigned a, unsigned b, gauge_flags *mode);
+unsigned prod_path(double complex *u, double complex *path, double complex *prod, double complex *z, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned a, gauge_flags *mode);
+
 double strong_coupling_plaquette(double beta, gauge_flags *mode);
 double strong_coupling_pl_u1(double b, unsigned d);
 double strong_coupling_pl_pade_u1(double b, long d);

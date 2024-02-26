@@ -193,6 +193,64 @@ void clover_mat(double complex *u, double complex *cl, double complex *z, unsign
 	dagger_asym(cl, n);
 }
 
+double wilson_loop_av(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned a, unsigned b, gauge_flags *mode){
+	// average all rectangular loops of size a*b (a=b=1 is plaquette; a=L, b=0 winds around torus)
+	const unsigned links = nn/2;
+	const unsigned nd = mode->space_dim;
+	double wilsons = 0;
+
+	for(unsigned i = 0; i < ns; i++){
+		for(unsigned nu = 1; nu < links; nu++){
+			for(unsigned mu = 0; mu < nu; mu++){
+				wilsons += creal(wilson_loop_tr(u, nnt, ns, nn, i, mu, nu, a, b, mode));
+			}
+		}
+	}
+
+	return wilsons * 2/nd/(nd-1) / ns;
+}
+
+double complex wilson_loop_tr(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, unsigned a, unsigned b, gauge_flags *mode){
+	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2;
+	double complex *path = mode->zdummy;
+	double complex *prod = path + mat_dim;
+	double complex *z = prod + mat_dim;
+
+	construct_id(prod, n);
+
+	pos = prod_path(u, path, prod, z, nnt, ns, nn, pos, mu, a, mode);
+	pos = prod_path(u, path, prod, z, nnt, ns, nn, pos, nu, b, mode);
+	pos = prod_path(u, path, prod, z, nnt, ns, nn, pos, mu + links, a, mode);
+	pos = prod_path(u, path, prod, z, nnt, ns, nn, pos, nu + links, b, mode);
+
+	return trace(prod, n);
+}
+
+unsigned prod_path(double complex *u, double complex *path, double complex *prod, double complex *z, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned a, gauge_flags *mode){
+	// product of gauge links along a straight path
+	// prod (in/out): previous links / all links so far
+	const unsigned n = mode->gauge_dim, links = nn/2;
+	const unsigned *nnl = nnt + ns*nn;
+	double complex *prod_cp = prod;
+
+	const int turnM = mu >= links;
+
+	for(unsigned c = 0; c < a; c++){
+		copy_mat(u + nnl[pos*nn + mu], z, n, turnM);
+		pos = nnt[pos*nn + mu];
+
+		double complex *tmp = path;
+		path = prod;
+		prod = tmp;
+
+		mat_mul(path, z, prod, n);
+	}
+
+	if(prod != prod_cp) copy_mat(prod, prod_cp, n, 0);
+
+	return pos;
+}
+
 double strong_coupling_plaquette(double beta, gauge_flags *mode){
 	const unsigned d = mode->space_dim;
 	switch(mode->gauge_group){
