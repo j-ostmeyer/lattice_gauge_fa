@@ -139,3 +139,34 @@ void project_tr_su3(double complex *u, double *x){
 	x[7] = creal(u[0]) + creal(u[4]) - 2*creal(u[8]); // lambda_8
 	x[7] *= .25*ISQ3; // lambda_8
 }
+
+double gauge_volume(gauge_flags *mode){
+	// vol[U(N)] = vol[U(1)] * vol[SU(N)]
+	// vol[SU(N)] = sqrt(N 2^{N-1}) pi^{(N-1)(N+2)/2} / prod_{k=1}^{N-1} k!
+	double vol = 1;
+	unsigned n = 0;
+
+	switch(mode->gauge_group){
+		case 1:
+			n = 1;
+			vol = 2*M_PI;
+			break;
+		case 2:
+			n = 2;
+			break;
+		case 3:
+			n = 3;
+			break;
+	}
+
+	vol *= sqrt(n * pow(2, n-1)) * pow(M_PI, (n-1)*(n+2)/2);
+
+	unsigned long fac = 1;
+
+	for(unsigned k = 1; k < n; k++){
+		fac *= k;
+		vol /= fac;
+	}
+
+	return vol;
+}

@@ -13,4 +13,6 @@ void project_tr_u1(double complex *u, double *x);
 void project_tr_su2(double complex *u, double *x);
 void project_tr_su3(double complex *u, double *x);
 
+double gauge_volume(gauge_flags *mode);
+
 #endif
