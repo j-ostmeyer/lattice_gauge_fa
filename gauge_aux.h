@@ -37,6 +37,7 @@ double average_sq(double *x, unsigned n);
 double complex scalar_dot(double complex *x, double complex *y, unsigned d);
 
 double reTr(double complex *u, unsigned d);
+double complex trace(double complex *u, unsigned d);
 void construct_id(double complex *m, unsigned n);
 
 void mod_gram_schmidt(double complex *u, unsigned n, unsigned d);
@@ -50,6 +51,6 @@ void dagger_asym(double complex *m, unsigned n);
 
 void mat_mul(double complex *x, double complex *y, double complex *res, unsigned n);
 void mat_prod(double complex *u, unsigned n, unsigned d);
-double trace_prod(double complex *u, unsigned n, unsigned d);
+double complex trace_prod(double complex *u, unsigned n, unsigned d);
 
 #endif

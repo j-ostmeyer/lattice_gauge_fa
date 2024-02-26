@@ -17,7 +17,7 @@ double plaquette_av(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, 
 	for(unsigned i = 0; i < ns; i++){
 		for(unsigned nu = 1; nu < links; nu++){
 			for(unsigned mu = 0; mu < nu; mu++){
-				plaquettes += plaquette_tr(u, nnt, ns, nn, i, mu, nu, mode);
+				plaquettes += creal(plaquette_tr(u, nnt, ns, nn, i, mu, nu, mode));
 			}
 		}
 	}
@@ -25,7 +25,7 @@ double plaquette_av(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, 
 	return plaquettes * 2/nd/(nd-1) / ns;
 }
 
-double plaquette_tr(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
+double complex plaquette_tr(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
 	const unsigned n = mode->gauge_dim, mat_dim = n*n, links = nn/2;
 	const unsigned *nnl = nnt + ns*nn;
 	double complex *z = mode->zdummy;
@@ -111,11 +111,28 @@ double topo_charge(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, g
 	const unsigned nd = mode->space_dim;
 
 	switch(nd){
+		case 2:
+			return topo_charge_2d(u, nnt, ns, nn, mode);
 		case 4:
 			return topo_charge_4d(u, nnt, ns, nn, mode);
 		default:
 			return 0;
 	}
+}
+
+double topo_charge_2d(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, gauge_flags *mode){
+	const unsigned links = nn/2;
+	double charge = 0;
+
+	for(unsigned i = 0; i < ns; i++){
+		for(unsigned nu = 1; nu < links; nu++){
+			for(unsigned mu = 0; mu < nu; mu++){
+				charge += cimag(plaquette_tr(u, nnt, ns, nn, i, mu, nu, mode));
+			}
+		}
+	}
+
+	return charge / (2*M_PI);
 }
 
 double topo_charge_4d(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, gauge_flags *mode){
@@ -125,14 +142,14 @@ double topo_charge_4d(double complex *u, unsigned *nnt, unsigned ns, unsigned nn
 	for(unsigned i = 0; i < ns; i++){
 		const unsigned mu = 0; // 8 equivalent permutations can be summarised with same mu
 		for(unsigned nu = 1; nu < links; nu++){
-			charge += clover_field_tr(u, nnt, ns, nn, i, mu, nu, mode);
+			charge += creal(clover_field_tr(u, nnt, ns, nn, i, mu, nu, mode));
 		}
 	}
 
-	return charge /32/M_PI/M_PI / ns;
+	return charge / (8*M_PI*M_PI);
 }
 
-double clover_field_tr(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
+double complex clover_field_tr(double complex *u, unsigned *nnt, unsigned ns, unsigned nn, unsigned pos, unsigned mu, unsigned nu, gauge_flags *mode){
 	// only works for mu = 0, nu > 0 in 4D
 	unsigned rho = 0, sigma = 0;
 	switch(nu){

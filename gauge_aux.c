@@ -97,6 +97,15 @@ double reTr(double complex *u, unsigned d){
 	return tr;
 }
 
+double complex trace(double complex *u, unsigned d){
+	const unsigned d1 = d + 1;
+	double complex tr = 0;
+
+	for(unsigned i = 0; i < d; i++) tr += u[i*d1];
+
+	return tr;
+}
+
 void construct_id(double complex *m, unsigned n){
 	// construct identity
 	const unsigned n2 = n*n;
@@ -248,7 +257,7 @@ void mat_prod(double complex *u, unsigned n, unsigned d){
 	}
 }
 
-double trace_prod(double complex *u, unsigned n, unsigned d){
+double complex trace_prod(double complex *u, unsigned n, unsigned d){
 	// trace of product of n d-dimensional matrices, e.g. for plaquette
 	// right-most matrix first in array u, working space last
 	
@@ -259,7 +268,7 @@ double trace_prod(double complex *u, unsigned n, unsigned d){
 		case 0:
 			return d;
 		case 1:
-			return reTr(u, d);
+			return trace(u, d);
 		case 2:
 			prod = u + mat_dim;
 			break;
@@ -268,13 +277,13 @@ double trace_prod(double complex *u, unsigned n, unsigned d){
 			mat_prod(u + mat_dim, n-1, d);
 	}
 
-	double tr = 0;
+	double complex tr = 0;
 
 	for(unsigned k = 0; k < d; k++){
 		const unsigned kd = k*d;
 		for(unsigned i = 0; i < d; i++){
 			const double complex a = prod[kd + i], b = u[i*d + k];
-			tr += creal(a) * creal(b) - cimag(a) * cimag(b);
+			tr += a*b;
 		}
 	}
 
