@@ -24,6 +24,14 @@ void sample_id(double complex *u, unsigned ns, unsigned nn2, unsigned gd){
 	for(unsigned i = 0; i < dim; i++) construct_id(u + i*group_dim, gd);
 }
 
+double coupling_fac(double beta, gauge_flags *mode){
+	if(mode->gauge_group == 1) return 4 * beta; // factor 2 from definition of generators
+	else{
+		const unsigned nc = mode->gauge_dim;
+		return 2 * beta / nc;
+	}
+}
+
 double fill_harm_mat(double complex *m, unsigned nn2, unsigned nl, unsigned i, gauge_flags *mode){
 	// fill unitary matrix of eigenvectors, return non-zero eigenvalue
 	const unsigned loc_dim = nl/2+1, mat_dim = nn2*nn2;
@@ -86,9 +94,9 @@ void mat_mul_basis(double complex *x, double complex *y, double complex *m, unsi
 }
 
 void sample_fourier_momenta(double *p, double complex *pc, double beta, unsigned ns, unsigned nn2, const fftw_plan *fft, gauge_flags *mode){
-	const unsigned nc = mode->gauge_dim, ng = mode->num_gen, dim = ns*nn2*ng;
+	const unsigned ng = mode->num_gen, dim = ns*nn2*ng;
 	const unsigned nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim;
-	const double scale = sqrt(2*beta / nc) / ns;
+	const double scale = sqrt(coupling_fac(beta, mode)) / ns;
 	double complex *m = mode->zdummy;
 	double complex *tmp = m + nn2*nn2;
 
@@ -119,7 +127,7 @@ void sample_fourier_momenta(double *p, double complex *pc, double beta, unsigned
 }
 
 double energy_fourier_momenta(double complex *pc, double beta, unsigned ns, unsigned nn2, const fftw_plan *fft, gauge_flags *mode){
-	const unsigned nc = mode->gauge_dim, ng = mode->num_gen;
+	const unsigned ng = mode->num_gen;
 	const unsigned nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim;
 	double complex *m = mode->zdummy;
 	double complex *tmp = m + nn2*nn2;
@@ -144,13 +152,13 @@ double energy_fourier_momenta(double complex *pc, double beta, unsigned ns, unsi
 		}
 	}
 
-	return en / beta/2*nc / ns;
+	return en / coupling_fac(beta, mode) / ns;
 }
 
 void get_fourier_x_dot(double complex *pc, double beta, unsigned ns, unsigned nn2, double h, const fftw_plan *fft, gauge_flags *mode){
-	const unsigned nc = mode->gauge_dim, ng = mode->num_gen;
+	const unsigned ng = mode->num_gen;
 	const unsigned nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim;
-	const double scale = h / beta/2*nc / ns;
+	const double scale = h / coupling_fac(beta, mode) / ns;
 	double complex *m = mode->zdummy;
 	double complex *tmp = m + nn2*nn2;
 

@@ -8,6 +8,8 @@
 
 void sample_id(double complex *u, unsigned ns, unsigned nn2, unsigned gd);
 
+double coupling_fac(double beta, gauge_flags *mode);
+
 double fill_harm_mat(double complex *m, unsigned nn2, unsigned nl, unsigned i, gauge_flags *mode);
 
 void mat_mul_basis(double complex *x, double complex *y, double complex *m, unsigned nn2, unsigned ng, unsigned j, int dagger);
