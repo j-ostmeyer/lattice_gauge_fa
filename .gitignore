@@ -134,6 +134,7 @@ figures/*.eps
 ## directory without need for version control
 *test/
 log/
+production/
 
 ## compiled files
 *main

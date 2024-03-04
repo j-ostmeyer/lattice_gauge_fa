@@ -14,7 +14,7 @@ MYLIBS=-lfftw3 -lm
 findany = $(strip $(foreach W,$1,$(findstring $W,$2)))
 
 ifneq (,$(call findany,login viz,$(HOSTNAME)))
-#  #We are on DIaL
+#  #We are on a supercomputer with MKL
   CC = icc -std=c11
   #MYFLAGS += -qopenmp
   MYFLAGS += -no-multibyte-chars -mkl
