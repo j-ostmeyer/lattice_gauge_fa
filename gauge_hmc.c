@@ -134,14 +134,16 @@ short trajectory(double *p, double complex *pc, double beta, unsigned *nnt, unsi
 		// collection of different results, current dimension = NUM_RES = 7
 		results[0] = plaquettes / gd; // average plaquette
 		results[1] = plaquettes / gd / plaquettes_old[1] - 1; // relative plaquette deviation from strong coupling result
-		//results[2] = wilson_loop_av(u, nnt, ns, nn, ns, 1, mode) / gd; // average Wilson loops of fixed length
 		results[2] = topo_charge(u, nnt, ns, nn, mode); // topological charge in 2D or 4D
 		results[3] = results[2]*results[2]; // squared topological charge
 		results[4] = energy; // HMC energy
 		results[5] = acc; // acceptance
 		results[6] = boltzmann; // exp(-dH), should average to 1
 
-		fprint_results(res_out, results, 1, NUM_RES);
+		for(unsigned l = 2; l <= mode->wilson_loops; l++)
+			results[NUM_RES+l-2] = wilson_loop_av(u, nnt, ns, nn, l, l, mode) / gd; // average Wilson loops of fixed length
+
+		fprint_results(res_out, results, 1, mode->num_res);
 	}
 
 	return acc;
@@ -159,7 +161,7 @@ void run_hmc(double beta, unsigned *nnt, unsigned ns, unsigned nn, unsigned step
 	double complex *u = pc + compl_dim;
 
 	mode->zdummy = malloc(20 * (group_dim + ng*nn2*nn2) * sizeof(double complex));
-	mode->ddummy = malloc(10 * gd * sizeof(double));
+	mode->ddummy = malloc((10 * gd + mode->num_res) * sizeof(double));
 	mode->idummy = malloc(nn * sizeof(int));
 
 	sample_id(u, ns, nn2, gd);

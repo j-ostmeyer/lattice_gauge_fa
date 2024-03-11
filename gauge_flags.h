@@ -8,6 +8,8 @@ typedef struct GaugeFlags{
 	unsigned length_cube;
 	unsigned space_dim;
 	int no_fourier_acc;
+	unsigned num_res;
+	unsigned wilson_loops;
 	double complex *zdummy;
 	double *ddummy;
 	int *idummy;

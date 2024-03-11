@@ -4,9 +4,12 @@
 
 #include "gauge_flags.h"
 
+#include "gauge_aux.h"
+
 void set_flags(FILE *in, gauge_flags *mode){
 	mode->gauge_group = 0;
 	mode->no_fourier_acc = 0;
+	mode->wilson_loops = 0;
 
 	char flag[200];
 
@@ -28,8 +31,12 @@ void set_flags(FILE *in, gauge_flags *mode){
 			mode->num_gen = 8;
 		}else if(!strcmp(flag, "NO_FOURIER_ACC")){
 			mode->no_fourier_acc = 1;
+		}else if(!strcmp(flag, "WILSON_LOOPS")){
+			fscanf(in, "%u\n", &mode->wilson_loops);
 		}
 	}
+
+	mode->num_res = NUM_RES + mode->wilson_loops-1;
 
 	if(!mode->gauge_group) printf("ERROR: Gauge group missing or unknown!\n");
 }
