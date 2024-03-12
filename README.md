@@ -23,7 +23,7 @@ Adjust the `input.txt` file according to the gauge group, dimensionality and met
 As the name suggests, all results will be written to `results.csv` (or any other file provided as a second argument).
 
 ### Results
-The results come in 7 columns:
+The results come in at least 7 columns:
 
 1. Average plaquette
 2. deviation of plaquette from strong coupling expansion
@@ -32,6 +32,7 @@ The results come in 7 columns:
 5. HMC energy
 6. Acceptance (acc=1, rej=0)
 7. Boltzmann weight `exp(-(E-E_0))`
+... any number of Wilson loops (passed sanity checks, but not tested extensively) from $2\times2$ to $l\timesl$, $l$ specified on input
 
 ## Data
 
