@@ -1,5 +1,7 @@
 # Lattice Gauge Theory with HMC and Fourier Acceleration
 
+by Johann Ostmeyer
+
 An implementation of pure lattice gauge theory simulations with Hybrid Monte Carlo (HMC) and the optional feature of Fourier acceleration.
 
 This repository contains the code required to reproduce the results presented in the section on lattice gauge theory of *"Minimal Autocorrelation in Hybrid Monte Carlo simulations with Exact Fourier Acceleration"*, [arXiv:2403.xxxxx [hep-lat]](https://arxiv.org/abs/2403.xxxxx).
@@ -31,8 +33,8 @@ The results come in at least 7 columns:
 4. squared topological charge
 5. HMC energy
 6. Acceptance (acc=1, rej=0)
-7. Boltzmann weight `exp(-(E-E_0))`
-... any number of Wilson loops (passed sanity checks, but not tested extensively) from $2\times2$ to $l\timesl$, $l$ specified on input
+7. Boltzmann weight `exp(-(E-E_0))`\
+... any number of Wilson loops (passed sanity checks, but not tested extensively) from $2\times2$ to $l\times l$, $l$ specified on input
 
 ## Data
 
