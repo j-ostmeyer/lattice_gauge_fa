@@ -4,7 +4,7 @@ by Johann Ostmeyer
 
 An implementation of pure lattice gauge theory simulations with Hybrid Monte Carlo (HMC) and the optional feature of Fourier acceleration.
 
-This repository contains the code required to reproduce the results presented in the section on lattice gauge theory of *"Minimal Autocorrelation in Hybrid Monte Carlo simulations with Exact Fourier Acceleration"*, [arXiv:2403.xxxxx [hep-lat]](https://arxiv.org/abs/2403.xxxxx).
+This repository contains the code required to reproduce the results presented in the section on lattice gauge theory of *"Minimal Autocorrelation in Hybrid Monte Carlo simulations with Exact Fourier Acceleration"*, [arXiv:2404.09723 [hep-lat]](https://arxiv.org/abs/2404.09723).
 
 For questions concerning the code or data contact [ostmeyer@hiskp.uni-bonn.de](mailto:ostmeyer@hiskp.uni-bonn.de).
 
