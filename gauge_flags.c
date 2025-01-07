@@ -9,7 +9,8 @@
 void set_flags(FILE *in, gauge_flags *mode){
 	mode->gauge_group = 0;
 	mode->no_fourier_acc = 0;
-	mode->wilson_loops = 0;
+	mode->wilson_loops = 1;
+	mode->fa_mass = 0;
 
 	char flag[200];
 
@@ -31,6 +32,8 @@ void set_flags(FILE *in, gauge_flags *mode){
 			mode->num_gen = 8;
 		}else if(!strcmp(flag, "NO_FOURIER_ACC")){
 			mode->no_fourier_acc = 1;
+		}else if(!strcmp(flag, "FA_MASS")){
+			fscanf(in, "%lg\n", &mode->fa_mass);
 		}else if(!strcmp(flag, "WILSON_LOOPS")){
 			fscanf(in, "%u\n", &mode->wilson_loops);
 		}

@@ -10,6 +10,7 @@ typedef struct GaugeFlags{
 	int no_fourier_acc;
 	unsigned num_res;
 	unsigned wilson_loops;
+	double fa_mass;
 	double complex *zdummy;
 	double *ddummy;
 	int *idummy;
