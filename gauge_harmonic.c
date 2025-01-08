@@ -107,7 +107,7 @@ void sample_fourier_momenta(double *p, double complex *pc, double beta, unsigned
 	fftw_execute(fft[0]);
 
 	// project zero eigenmodes to 0
-	for(unsigned j = 0; j < nn2*ng; j++) pc[j] = scale * mode->fa_mass;
+	for(unsigned j = 0; j < nn2*ng; j++) pc[j] *= scale * mode->fa_mass;
 
 	for(unsigned i = 1; i < compl_dim; i++){
 		const double ev = fill_harm_mat(m, nn2, nl, i, mode), fac = scale*sqrt(ev + mass2);
@@ -116,7 +116,7 @@ void sample_fourier_momenta(double *p, double complex *pc, double beta, unsigned
 		for(unsigned j = 0; j < ng; j++){ // sub-optimal cache-locality, but array should be small enough
 			mat_mul_basis(pc + shift, tmp, m, nn2, ng, j, 1);
 
-			tmp[j] =  scale * mode->fa_mass; // 0th eigenvalue is zero
+			tmp[j] *= scale * mode->fa_mass; // 0th eigenvalue is zero
 			for(unsigned k = 1; k < nn2; k++) tmp[j + k*ng] *= fac;
 
 			mat_mul_basis(tmp, pc + shift, m, nn2, ng, j, 0);
@@ -170,7 +170,7 @@ void get_fourier_x_dot(double complex *pc, double beta, unsigned ns, unsigned nn
 	fftw_execute(fft[0]);
 
 	// project zero eigenmodes to 0 or cutoff 1/m^2
-	for(unsigned j = 0; j < nn2*ng; j++) pc[j] = mass2? scale/mass2 : 0;
+	for(unsigned j = 0; j < nn2*ng; j++) pc[j] *= mass2? scale/mass2 : 0;
 
 	for(unsigned i = 1; i < compl_dim; i++){
 		const double ev = fill_harm_mat(m, nn2, nl, i, mode), fac = scale/(ev + mass2);
@@ -179,7 +179,7 @@ void get_fourier_x_dot(double complex *pc, double beta, unsigned ns, unsigned nn
 		for(unsigned j = 0; j < ng; j++){ // sub-optimal cache-locality, but array should be small enough
 			mat_mul_basis(pc + shift, tmp, m, nn2, ng, j, 1);
 
-			tmp[j] = mass2? scale/mass2 : 0; // potential Gauge-fixing: no/regularised dynamics on zero eigenmodes
+			tmp[j] *= mass2? scale/mass2 : 0; // potential Gauge-fixing: no/regularised dynamics on zero eigenmodes
 			for(unsigned k = 1; k < nn2; k++) tmp[j + k*ng] *= fac;
 
 			mat_mul_basis(tmp, pc + shift, m, nn2, ng, j, 0);
