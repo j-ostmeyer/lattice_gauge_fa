@@ -96,7 +96,7 @@ void mat_mul_basis(double complex *x, double complex *y, double complex *m, unsi
 void sample_fourier_momenta(double *p, double complex *pc, double beta, unsigned ns, unsigned nn2, const fftw_plan *fft, gauge_flags *mode){
 	const unsigned ng = mode->num_gen, dim = ns*nn2*ng;
 	const unsigned nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim;
-	const double scale = sqrt(coupling_fac(beta, mode)) / ns, mass2 = mode->fa_mass * mode->fa_mass;
+	const double scale = 1./ns, prefac = coupling_fac(beta, mode);
 	double complex *m = mode->zdummy;
 	double complex *tmp = m + nn2*nn2;
 
@@ -110,7 +110,7 @@ void sample_fourier_momenta(double *p, double complex *pc, double beta, unsigned
 	for(unsigned j = 0; j < nn2*ng; j++) pc[j] *= scale * mode->fa_mass;
 
 	for(unsigned i = 1; i < compl_dim; i++){
-		const double ev = fill_harm_mat(m, nn2, nl, i, mode), fac = scale*sqrt(ev + mass2);
+		const double ev = fill_harm_mat(m, nn2, nl, i, mode), fac = scale*sqrt(prefac*ev);
 		const unsigned shift = i*nn2*ng;
 
 		for(unsigned j = 0; j < ng; j++){ // sub-optimal cache-locality, but array should be small enough
@@ -129,7 +129,7 @@ void sample_fourier_momenta(double *p, double complex *pc, double beta, unsigned
 double energy_fourier_momenta(double complex *pc, double beta, unsigned ns, unsigned nn2, const fftw_plan *fft, gauge_flags *mode){
 	const unsigned ng = mode->num_gen;
 	const unsigned nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim;
-	const double mass2 = mode->fa_mass * mode->fa_mass;
+	const double prefac = coupling_fac(beta, mode), mass2 = mode->fa_mass * mode->fa_mass;
 	double complex *m = mode->zdummy;
 	double complex *tmp = m + nn2*nn2;
 	double en = 0;
@@ -146,7 +146,7 @@ double energy_fourier_momenta(double complex *pc, double beta, unsigned ns, unsi
 		// elements t=1...Nt/2-1 occur twice (as complex conj pairs), but are stored only once
 		if(pos > 0 && pos < (nl+1)/2) weight *= 2;
 
-		const double ev = fill_harm_mat(m, nn2, nl, i, mode), fac = weight/(ev + mass2);
+		const double ev = fill_harm_mat(m, nn2, nl, i, mode), fac = weight/(prefac*ev);
 		const unsigned shift = i*nn2*ng;
 
 		for(unsigned j = 0; j < ng; j++){ // sub-optimal cache-locality, but array should be small enough
@@ -157,13 +157,13 @@ double energy_fourier_momenta(double complex *pc, double beta, unsigned ns, unsi
 		}
 	}
 
-	return en / coupling_fac(beta, mode) / ns;
+	return en / ns;
 }
 
 void get_fourier_x_dot(double complex *pc, double beta, unsigned ns, unsigned nn2, double h, const fftw_plan *fft, gauge_flags *mode){
 	const unsigned ng = mode->num_gen;
 	const unsigned nl = mode->length_cube, loc_dim = nl/2+1, compl_dim = (ns/nl) * loc_dim;
-	const double scale = h / coupling_fac(beta, mode) / ns, mass2 = mode->fa_mass * mode->fa_mass;
+	const double scale = h / ns, prefac = coupling_fac(beta, mode), mass2 = mode->fa_mass * mode->fa_mass;
 	double complex *m = mode->zdummy;
 	double complex *tmp = m + nn2*nn2;
 
@@ -173,7 +173,7 @@ void get_fourier_x_dot(double complex *pc, double beta, unsigned ns, unsigned nn
 	for(unsigned j = 0; j < nn2*ng; j++) pc[j] *= mass2? scale/mass2 : 0;
 
 	for(unsigned i = 1; i < compl_dim; i++){
-		const double ev = fill_harm_mat(m, nn2, nl, i, mode), fac = scale/(ev + mass2);
+		const double ev = fill_harm_mat(m, nn2, nl, i, mode), fac = scale/(prefac*ev);
 		const unsigned shift = i*nn2*ng;
 
 		for(unsigned j = 0; j < ng; j++){ // sub-optimal cache-locality, but array should be small enough

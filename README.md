@@ -43,4 +43,4 @@ Most of the simulations in paper can be reproduced very quickly, nonetheless the
 ## Stable Releases
 
 `v1.1.1` initial publication with the preprint, compatible with arXiv version v1.
-`v1.2.1` implemented regularisation of dispersion matrix in addition to gauge fixing, compatible with arXiv version v2.
+`v1.2.2` implemented regularisation of dispersion matrix in addition to gauge fixing, compatible with arXiv version v2.
